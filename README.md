@@ -47,6 +47,42 @@ Groups advancements by scout into a CSV for use with mail merge.
 python advancement_processor.py <input_file1.csv> [input_file2.csv ...] [-o output_file.csv]
 ```
 
+## Scoutbook Advancement Process
+
+This tool works with documents exported from [Scoutbook (advancements.scouting.org)](https://advancements.scouting.org), Scouting America's online advancement tracking system. For the full official guide, see the [Guide to Advancement](https://www.scouting.org/resources/guide-to-advancement/).
+
+### Roles
+
+| Role | Responsibility |
+|------|---------------|
+| **Den Leader** | Records scout awards as they are earned in Scoutbook |
+| **Scoutmaster / Unit Admin** | Approves advancement entries submitted by den leaders |
+| **Advancement Chair** | Creates purchase orders, submits to the scout shop, generates labels for ceremonies |
+
+### End-to-End Workflow
+
+1. **Record** — Den leaders enter advancements in Scoutbook as scouts earn them
+2. **Approve** — In Scoutbook, go to the "To Approve" tab → select item category → check off advancements → click "Approve Items"
+3. **Purchase** — Go to the "To Purchase" tab (shows all approved but not yet awarded items) → check items → click "Add items to order"
+4. **View Order** — Click "View Order" at the bottom of the page → download the Purchase Order and Advancement Report
+5. **Submit** — Email the PO PDF and Advancement Report to the local scout shop (they typically have the order ready within 24 hours), or bring them in person
+6. **Generate Labels** — Feed the Purchase Order CSV into this tool to generate printable labels
+7. **Ceremony** — Present awards to scouts at the pack meeting
+8. **Close** — Back in Scoutbook, close the purchase order and mark advancements as "awarded"
+
+### Scoutbook Export Documents
+
+When an Advancement Chair creates and views a purchase order, Scoutbook generates three documents:
+
+**Purchase Order CSV** (`PO_P####FP_######.csv`)
+The **input** to this tool. One row per scout per award. Contains columns for scout name, den type, den number, SKU, item name, price, and date earned.
+
+**Purchase Order PDF** (`PO_P####FP_######.pdf`)
+A formatted shopping list organized by SKU. Shows quantity, item name, unit price, and total price for each award type, with scout names listed underneath each item. Includes a subtotal. This is what the scout shop uses to pull the order.
+
+**Advancement Report PDF** (`Advancement_Report_*.pdf`)
+The official BSA advancement report form ([SKU 34403](https://filestore.scouting.org/filestore/pdf/34403.pdf)). Contains pack information (number, district, leader, address), a numbered list of all scouts and their awards with dates earned, signature lines for the Advancement Committee, and a summary of total youth and total awards. This is the formal record submitted to the Council Service Center and must be signed by the pack leader.
+
 ## Input Format
 
 Your input CSV must have these columns (other columns are ignored):

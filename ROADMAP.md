@@ -56,15 +56,16 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 ### v0.4.0 — Configurable Labels
 - [ ] Build a catalog of Avery label types in the same size range as 6427
 - [ ] Let user select label type from a dropdown
+- [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
 - [ ] Preview label layout before printing
 
 ### v0.5.0 — Pack Ceremony Bundles
-- [ ] Create a "ceremony day" bundle containing:
-  - Generated label PDF
-  - Source advancement CSV files
-  - Item order list PDF
-  - Advancement form PDF
-- [ ] Pre-defined folder structure for saving ceremony bundles
+- [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:
+  - Purchase Order CSV (`PO_P####FP_######.csv`) — source data
+  - Purchase Order PDF (`PO_P####FP_######.pdf`) — item order list for scout shop
+  - Advancement Report PDF (`Advancement_Report_*.pdf`) — official BSA form for Council
+  - Generated label PDF — output from this tool
+- [ ] Pre-defined folder structure for saving ceremony bundles (e.g., `YYYY-MM-DD - Ceremony/`)
 - [ ] Date-stamped output directories
 
 ### v0.6.0 — Windows Support
@@ -88,10 +89,13 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 
 ## Advancement Workflow Reference
 
-For context on how this tool fits into the scouting process:
+For the full workflow detail, see the [Scoutbook Advancement Process](README.md#scoutbook-advancement-process) section in the README.
 
-1. **Den Leader** — enters scout awards as they are earned in Scoutbook
-2. **Scoutmaster** — approves their pack's awards
-3. **Advancement Chair** — moves approved awards into a purchase order, submits to the scout shop online or in person
+In short: Den leaders record → Scoutmaster approves → Advancement Chair creates purchase order → downloads CSV/PDFs → submits to scout shop → **this tool generates labels from the CSV** → awards presented at ceremony → PO closed in Scoutbook.
 
-This tool is used by the Advancement Chair after step 3, when they have the purchase order CSV export from [advancements.scouting.org](https://advancements.scouting.org).
+## References
+
+- [Guide to Advancement 2025 — Scouting America](https://www.scouting.org/resources/guide-to-advancement/)
+- [Guidelines for Advancement Committees](https://www.scouting.org/resources/guide-to-advancement/guidelines-for-advancement/)
+- [Scoutbook Knowledge Base](https://help.scoutbook.scouting.org/knowledge-base/getting-a-unit-started-in-scoutbook/)
+- [BSA Advancement Report Form (SKU 34403)](https://filestore.scouting.org/filestore/pdf/34403.pdf)
