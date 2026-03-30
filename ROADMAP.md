@@ -46,13 +46,7 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 
 ## Post-MVP
 
-### v0.4.0 — Configurable Labels
-- [ ] Build a catalog of Avery label types in the same size range as 6427
-- [ ] Let user select label type from a dropdown
-- [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
-- [ ] Preview label layout before printing
-
-### v0.5.0 — Pack Ceremony Bundles
+### v0.4.0 — Pack Ceremony Bundles
 - [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:
   - Purchase Order CSV (`PO_P####FP_######.csv`) — source data
   - Purchase Order PDF (`PO_P####FP_######.pdf`) — item order list for scout shop
@@ -60,6 +54,12 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
   - Generated label PDF — output from this tool
 - [ ] Pre-defined folder structure for saving ceremony bundles (e.g., `YYYY-MM-DD - Ceremony/`)
 - [ ] Date-stamped output directories
+
+### v0.5.0 — Configurable Labels
+- [ ] Build a catalog of Avery label types in the same size range as 6427
+- [ ] Let user select label type from a dropdown
+- [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
+- [ ] Preview label layout before printing
 
 ### v0.6.0 — Windows Support
 - [ ] PyInstaller `.exe` build for Windows
