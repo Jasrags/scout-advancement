@@ -79,27 +79,19 @@ The version is defined in `src/version.py` (single source of truth) and displaye
 
 ## Planned
 
-### v1.1.0 — Pack Ceremony Bundles
-- [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:
-  - Purchase Order CSV (`PO_P####FP_######.csv`) — source data
-  - Purchase Order PDF (`PO_P####FP_######.pdf`) — item order list for scout shop
-  - Advancement Report PDF (`Advancement_Report_*.pdf`) — official BSA form for Council
-  - Generated label PDF and bagging guide — outputs from this tool
-- [ ] Pre-defined folder structure for saving ceremony bundles (e.g., `YYYY-MM-DD - Ceremony/`)
-- [ ] Date-stamped output directories
-
-### v1.2.0 — Configurable Labels
+### v1.1.0 — Configurable Labels
 - [ ] Build a catalog of Avery label types in the same size range as 6427
 - [ ] Let user select label type from a dropdown
 - [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
 - [ ] Preview label layout before printing
 
-### v1.3.0 — Windows Support
+### v1.2.0 — Windows Support
 - [ ] PyInstaller `.exe` build for Windows
 - [ ] GitHub Actions matrix build for macOS + Windows
 - [ ] Windows installer or portable `.exe`
 
-### Future
+### Backlog
+- [ ] Pack ceremony bundles — bundle all Scoutbook outputs (PO CSV, PO PDF, Advancement Report) plus generated labels and bagging guide into a date-stamped folder
 - [ ] Pack-wide inventory summary page (total item counts across all scouts)
 - [ ] Auto-update check (notify when new version is available)
 - [ ] Code signing for macOS (Developer ID) and Windows
