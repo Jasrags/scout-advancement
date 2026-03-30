@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "scout-advancement"
+version = "0.1.0"
+description = "Scout advancement label generator — CSV to printable Avery 6427 labels"
+requires-python = ">=3.10"
+dependencies = [
+    "reportlab>=4.0",
+    "PySide6>=6.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+scout-labels = "src.main:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
