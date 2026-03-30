@@ -7,11 +7,12 @@ ROOT="$(dirname "$SCRIPT_DIR")"
 echo "=== Scout Advancement Labels — Build ==="
 echo "Root: $ROOT"
 
-# Activate venv
+# Activate venv if present (CI already has deps on PATH)
 if [ -d "$ROOT/.venv" ]; then
     source "$ROOT/.venv/bin/activate"
-else
-    echo "Error: .venv not found. Run: python3 -m venv .venv && pip install -e '.[dev]'"
+elif ! command -v pyinstaller &>/dev/null; then
+    echo "Error: .venv not found and pyinstaller not on PATH."
+    echo "Run: python3 -m venv .venv && pip install -e '.[dev]'"
     exit 1
 fi
 
