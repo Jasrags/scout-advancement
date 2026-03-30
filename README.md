@@ -119,21 +119,6 @@ The PDF is designed for direct printing on Avery 6427 label sheets — no mail m
 - Verify your CSV has the exact column names: `First Name`, `Last Name`, `Den Type`, `Item Name`
 - Check for extra spaces in column headers
 
+## Roadmap
 
-#Draft of responsbilities of advancements and awards
-Den leader - Enters in scout awards as they are earned 
-Scoutmaster - Approves their packs awards 
-Advancement Chair - Moves the approved awards and advancements into the purchase order, submits the order to either the online shop or thier local scoutshop via email or going in person.
-
-
-#Draft of how to use scoutbook as advancement chair
-login to https://advancements.scouting.org
-
-
-
-Notes: 
-- the den numbers will shift by pack and over time so we can't really hard code that. 
-- AOL is a tricky one as well as some times it's represented as a Webelo 1 and Webelo 2 (AOL) or sometimes it's just Arrow of Light (AOL). What i'm saying is that it is not always static.
-- The label type may need to be configurable, post mvp we should build a catalog of avery labels that are in the same range as 6427 in size. 
-- We should pre-define some strucure on where we save save the pdfs. 
-- We should add the ability to create a pack performance (award day) that will contain the generated label, source advancement cvs files, item order list pdf and advancement form pdf.
+See [ROADMAP.md](ROADMAP.md) for planned features and release milestones.
