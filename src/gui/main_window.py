@@ -7,6 +7,7 @@ import os
 from PySide6.QtCore import QSettings, QUrl
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -26,6 +27,7 @@ from src.core.label_generator import (
     generate_pdf,
     read_advancements,
 )
+from src.core.label_spec import DEFAULT_LABEL_SPEC, LABEL_CATALOG, LabelSpec, get_label_spec
 from src.gui.file_list_widget import FileListWidget
 from src.version import __version__
 
@@ -60,7 +62,7 @@ class MainWindow(QMainWindow):
 
         subtitle = QLabel(
             "Select Scoutbook CSV exports (or drag and drop), "
-            "then generate printable Avery 6427 labels."
+            "then generate printable labels or a bagging guide."
         )
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
@@ -69,6 +71,21 @@ class MainWindow(QMainWindow):
         self._file_list.files_changed.connect(self._on_files_changed)
         layout.addWidget(self._file_list, stretch=1)
 
+        # Label type selector
+        label_layout = QHBoxLayout()
+        label_layout.addWidget(QLabel("Label type:"))
+        self._label_combo = QComboBox()
+        for spec in LABEL_CATALOG:
+            self._label_combo.addItem(f"{spec.name} — {spec.description}", spec.name)
+        saved_label = str(self._settings.value("label_type", DEFAULT_LABEL_SPEC.name))
+        idx = self._label_combo.findData(saved_label)
+        if idx >= 0:
+            self._label_combo.setCurrentIndex(idx)
+        self._label_combo.currentIndexChanged.connect(self._on_label_type_changed)
+        label_layout.addWidget(self._label_combo, stretch=1)
+        layout.addLayout(label_layout)
+
+        # Action buttons
         btn_layout = QHBoxLayout()
 
         self._generate_btn = QPushButton("Generate Labels PDF")
@@ -96,6 +113,14 @@ class MainWindow(QMainWindow):
         self._generate_btn.setEnabled(has_files)
         self._bagging_btn.setEnabled(has_files)
 
+    def _on_label_type_changed(self, _index: int) -> None:
+        name = self._label_combo.currentData()
+        self._settings.setValue("label_type", name)
+
+    def _selected_label_spec(self) -> LabelSpec:
+        name = self._label_combo.currentData()
+        return get_label_spec(name) or DEFAULT_LABEL_SPEC
+
     def _on_generate(self) -> None:
         file_paths = self._file_list.get_valid_file_paths()
         if not file_paths:
@@ -117,12 +142,13 @@ class MainWindow(QMainWindow):
         # Remember the directory for next time
         self._settings.setValue("last_save_dir", os.path.dirname(save_path))
 
+        spec = self._selected_label_spec()
         self._status.clear()
-        self._status.append(f"Processing {len(file_paths)} file(s)...")
+        self._status.append(f"Processing {len(file_paths)} file(s) with {spec.name}...")
 
         try:
             scouts = read_advancements(file_paths)
-            result: GenerationResult = generate_pdf(scouts, save_path)
+            result: GenerationResult = generate_pdf(scouts, save_path, label_spec=spec)
             self._status.append(
                 f"Generated {result.label_count} labels on {result.page_count} page(s)."
             )
@@ -177,7 +203,7 @@ class MainWindow(QMainWindow):
             "About Scout Advancement Labels",
             f"<h3>Scout Advancement Labels</h3>"
             f"<p>Version {__version__}</p>"
-            f"<p>Generates printable Avery 6427 labels from "
+            f"<p>Generates printable Avery labels from "
             f"Scoutbook advancement CSV exports.</p>"
             f"<p>Built for Cub Scout pack advancement chairs.</p>",
         )

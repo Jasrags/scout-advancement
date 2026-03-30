@@ -1,8 +1,8 @@
 """
 Core label generation logic.
 
-Reads Scoutbook CSV exports and produces Avery 6427 shipping label PDFs
-(2" x 4", 10 per sheet on US Letter).
+Reads Scoutbook CSV exports and produces label PDFs for any supported
+Avery label type (default: Avery 6427 shipping labels, 2" x 4", 10 per sheet).
 """
 
 from __future__ import annotations
@@ -16,19 +16,21 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
-# --- Avery 6427 / 5163 Shipping Label Layout (US Letter) ---
+from src.core.label_spec import DEFAULT_LABEL_SPEC, LabelSpec
+
+# --- Page size ---
 PAGE_WIDTH, PAGE_HEIGHT = LETTER  # 8.5" x 11"
 
-LABEL_WIDTH = 4.0 * inch
-LABEL_HEIGHT = 2.0 * inch
-COLUMNS = 2
-ROWS = 5
-LABELS_PER_PAGE = COLUMNS * ROWS
-
-TOP_MARGIN = 0.5 * inch
-LEFT_MARGIN = 0.15625 * inch  # 5/32"
-H_GAP = 0.1875 * inch  # 3/16" gap between columns
-V_GAP = 0.0  # no vertical gap
+# --- Legacy module-level constants (kept for backward compatibility) ---
+LABEL_WIDTH = DEFAULT_LABEL_SPEC.label_width
+LABEL_HEIGHT = DEFAULT_LABEL_SPEC.label_height
+COLUMNS = DEFAULT_LABEL_SPEC.columns
+ROWS = DEFAULT_LABEL_SPEC.rows
+LABELS_PER_PAGE = DEFAULT_LABEL_SPEC.labels_per_page
+TOP_MARGIN = DEFAULT_LABEL_SPEC.top_margin
+LEFT_MARGIN = DEFAULT_LABEL_SPEC.left_margin
+H_GAP = DEFAULT_LABEL_SPEC.h_gap
+V_GAP = DEFAULT_LABEL_SPEC.v_gap
 
 # Text inset from label edge
 PAD_LEFT = 0.15 * inch
@@ -36,7 +38,7 @@ PAD_TOP = 0.15 * inch
 PAD_RIGHT = 0.15 * inch
 PAD_BOTTOM = 0.1 * inch
 
-# Font sizes
+# Font sizes — scale down for smaller labels
 NAME_FONT_SIZE = 11
 AWARDS_FONT_SIZE = 8
 
@@ -148,12 +150,22 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
     ]
 
 
-def _label_origin(index: int) -> tuple[float, float]:
-    """Return (x, y) of the top-left corner of label at the given index (0-9)."""
-    col = index % COLUMNS
-    row = index // COLUMNS
-    x = LEFT_MARGIN + col * (LABEL_WIDTH + H_GAP)
-    y = PAGE_HEIGHT - TOP_MARGIN - row * (LABEL_HEIGHT + V_GAP)
+def _font_sizes(spec: LabelSpec) -> tuple[float, float]:
+    """Return (name_font_size, awards_font_size) scaled to label height."""
+    # Scale relative to the 2" reference height of Avery 6427
+    ref_height = 2.0 * inch
+    scale = min(spec.label_height / ref_height, 1.0)
+    name_size = max(NAME_FONT_SIZE * scale, 6.0)
+    awards_size = max(AWARDS_FONT_SIZE * scale, 5.0)
+    return name_size, awards_size
+
+
+def _label_origin(index: int, spec: LabelSpec) -> tuple[float, float]:
+    """Return (x, y) of the top-left corner of label at the given index."""
+    col = index % spec.columns
+    row = index // spec.columns
+    x = spec.left_margin + col * (spec.label_width + spec.h_gap)
+    y = PAGE_HEIGHT - spec.top_margin - row * (spec.label_height + spec.v_gap)
     return x, y
 
 
@@ -181,25 +193,32 @@ def _wrap_text(
     return lines
 
 
-def _draw_label(c: canvas.Canvas, x: float, y: float, scout: ScoutRecord) -> None:
+def _draw_label(c: canvas.Canvas, x: float, y: float, scout: ScoutRecord, spec: LabelSpec) -> None:
     """Draw a single scout label at position (x, y) = top-left of label."""
+    name_size, awards_size = _font_sizes(spec)
     text_x = x + PAD_LEFT
-    usable_width = LABEL_WIDTH - PAD_LEFT - PAD_RIGHT
+    usable_width = spec.label_width - PAD_LEFT - PAD_RIGHT
 
     den_display = scout.den_type.title()
     name_line = f"{scout.first} {scout.last} [{den_display} ({scout.den_num})]"
 
-    c.setFont("Helvetica-Bold", NAME_FONT_SIZE)
-    name_y = y - PAD_TOP - NAME_FONT_SIZE
+    c.setFont("Helvetica-Bold", name_size)
+    # Truncate name if it overflows the label width
+    while (
+        c.stringWidth(name_line, "Helvetica-Bold", name_size) > usable_width
+        and len(name_line) > 10
+    ):
+        name_line = name_line[:-4] + "..."
+    name_y = y - PAD_TOP - name_size
     c.drawString(text_x, name_y, name_line)
 
     awards_text = ", ".join(scout.items)
-    c.setFont("Helvetica", AWARDS_FONT_SIZE)
-    lines = _wrap_text(c, awards_text, usable_width, "Helvetica", AWARDS_FONT_SIZE)
+    c.setFont("Helvetica", awards_size)
+    lines = _wrap_text(c, awards_text, usable_width, "Helvetica", awards_size)
 
-    line_height = AWARDS_FONT_SIZE + 2
+    line_height = awards_size + 2
     awards_start_y = name_y - line_height
-    label_bottom = y - LABEL_HEIGHT + PAD_BOTTOM
+    label_bottom = y - spec.label_height + PAD_BOTTOM
 
     for i, line in enumerate(lines):
         line_y = awards_start_y - i * line_height
@@ -208,12 +227,24 @@ def _draw_label(c: canvas.Canvas, x: float, y: float, scout: ScoutRecord) -> Non
         c.drawString(text_x, line_y, line)
 
 
-def generate_pdf(scouts: list[ScoutRecord], output_path: str) -> GenerationResult:
+def generate_pdf(
+    scouts: list[ScoutRecord],
+    output_path: str,
+    *,
+    label_spec: LabelSpec | None = None,
+) -> GenerationResult:
     """Generate the label PDF and return results.
+
+    Args:
+        scouts: List of scout records to generate labels for.
+        output_path: Path for the output PDF file.
+        label_spec: Label layout specification. Defaults to Avery 6427.
 
     Raises:
         OSError: If the output file cannot be written.
     """
+    spec = label_spec or DEFAULT_LABEL_SPEC
+
     resolved = Path(output_path).resolve()
     if resolved.suffix.lower() != ".pdf":
         raise OSError(f"Output path must end with .pdf: {resolved.name}")
@@ -226,15 +257,15 @@ def generate_pdf(scouts: list[ScoutRecord], output_path: str) -> GenerationResul
     c.setTitle("Cub Scout Advancement Labels")
 
     for i, scout in enumerate(scouts):
-        page_index = i % LABELS_PER_PAGE
+        page_index = i % spec.labels_per_page
         if i > 0 and page_index == 0:
             c.showPage()
 
-        x, y = _label_origin(page_index)
-        _draw_label(c, x, y, scout)
+        x, y = _label_origin(page_index, spec)
+        _draw_label(c, x, y, scout, spec)
 
     c.save()
-    page_count = (len(scouts) + LABELS_PER_PAGE - 1) // LABELS_PER_PAGE if scouts else 0
+    page_count = (len(scouts) + spec.labels_per_page - 1) // spec.labels_per_page if scouts else 0
 
     return GenerationResult(
         label_count=len(scouts),

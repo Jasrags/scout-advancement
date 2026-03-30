@@ -69,7 +69,10 @@ def _download_image(url: str) -> Path | None:
     """Download an image to the cache directory. Returns the local path or None."""
     cache = _cache_dir()
     url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
-    suffix = Path(url).suffix or ".jpg"
+    allowed = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    suffix = Path(url).suffix.lower()
+    if suffix not in allowed:
+        suffix = ".jpg"
     local_path = cache / f"{url_hash}{suffix}"
 
     if local_path.exists():

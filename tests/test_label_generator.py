@@ -12,6 +12,7 @@ from src.core.label_generator import (
     generate_pdf,
     read_advancements,
 )
+from src.core.label_spec import AVERY_5160, AVERY_5164, AVERY_6427
 
 SAMPLE_DIR = os.path.join(os.path.dirname(__file__), "..", "sample_data")
 SAMPLE_FILE_1 = os.path.join(SAMPLE_DIR, "PO_P2001FP_2000001.csv")
@@ -122,3 +123,40 @@ class TestGeneratePdf:
             assert result.page_count == 0
         finally:
             os.unlink(output_path)
+
+    def test_generates_with_different_label_spec(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            output_path = f.name
+        try:
+            result = generate_pdf(scouts, output_path, label_spec=AVERY_5164)
+            assert result.label_count == len(scouts)
+            # 5164 has 6 labels per page instead of 10
+            expected_pages = (len(scouts) + 5) // 6
+            assert result.page_count == expected_pages
+            assert os.path.getsize(result.output_path) > 0
+        finally:
+            os.unlink(output_path)
+
+    def test_generates_with_address_labels(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            output_path = f.name
+        try:
+            result = generate_pdf(scouts, output_path, label_spec=AVERY_5160)
+            assert result.label_count == len(scouts)
+            # 5160 has 30 labels per page
+            expected_pages = (len(scouts) + 29) // 30
+            assert result.page_count == expected_pages
+        finally:
+            os.unlink(output_path)
+
+    def test_default_spec_matches_6427(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path1 = os.path.join(tmpdir, "default.pdf")
+            path2 = os.path.join(tmpdir, "explicit.pdf")
+            r1 = generate_pdf(scouts, path1)
+            r2 = generate_pdf(scouts, path2, label_spec=AVERY_6427)
+            assert r1.label_count == r2.label_count
+            assert r1.page_count == r2.page_count
