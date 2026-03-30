@@ -56,7 +56,23 @@ On merge to `main`, if conventional commits indicate a version bump (`feat:` →
 2. Builds the macOS `.app` on a GitHub-hosted runner
 3. Creates a GitHub Release with the `.app` zip and changelog
 
-Versioning is managed by [python-semantic-release](https://python-semantic-release.readthedocs.io/).
+Versioning is managed by [python-semantic-release](https://python-semantic-release.readthedocs.io/). The release workflow is manual — trigger it from the Actions tab or via `gh workflow run release.yml`.
+
+### Version Bumps via Commit Prefixes
+
+Version bumps are determined by conventional commit prefixes. Use the right prefix and the version updates automatically on release:
+
+| Commit prefix | Version bump | Example |
+|---------------|-------------|---------|
+| `fix:` | Patch (0.4.0 → 0.4.1) | `fix: handle empty CSV gracefully` |
+| `perf:` | Patch (0.4.0 → 0.4.1) | `perf: reduce PDF generation time` |
+| `feat:` | Minor (0.4.1 → 0.5.0) | `feat: add ceremony bundle export` |
+| `feat!:` or `BREAKING CHANGE` | Major (0.x → 1.0.0) | `feat!: new CSV format` |
+| `docs:`, `test:`, `chore:`, `ci:`, `refactor:` | No bump | `docs: update README` |
+
+While on `0.x`, `feat:` bumps minor only (not major). A major bump to `1.0.0` requires an explicit `feat!:` or `BREAKING CHANGE` footer.
+
+The single source of truth for the version is `src/version.py` — do not edit it manually; let semantic-release handle it.
 
 ## Scoutbook Advancement Process
 
