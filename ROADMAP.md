@@ -23,7 +23,7 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 - [x] Word-wrapping for long award lists
 - [x] Sample data with fictitious scouts for testing
 
-### v0.2.0 — Core Refactor + GUI (in progress)
+### v0.2.0 — Core Refactor + GUI
 - [x] Extract label generation into reusable library (`src/core/`)
 - [x] CSV validation before processing
 - [x] Custom exceptions instead of `sys.exit`
@@ -33,21 +33,14 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 - [x] Handle plural den type names (lions, tigers, wolves, bears)
 - [x] Handle AOL variations in sort order
 
----
-
-## MVP — v0.3.0
-
-### Packaging
-- [ ] PyInstaller standalone `.app` for macOS
-- [ ] App icon
-- [ ] Build script for reproducible builds
-- [ ] Test on clean Mac (no Python installed)
-- [ ] Document Gatekeeper workaround (right-click → Open)
-
-### Usability
-- [ ] Drag-and-drop CSV files onto the window
-- [ ] Remember last-used save directory
-- [ ] About dialog showing version number
+### v0.3.0 — MVP Standalone App
+- [x] PyInstaller standalone `.app` for macOS (110MB bundle)
+- [x] App icon (BSA green + gold star)
+- [x] Build script for reproducible builds (`scripts/build.sh`)
+- [x] Drag-and-drop CSV files onto the window
+- [x] Remember last-used save directory
+- [x] About dialog showing version number
+- [x] Version module (`src/version.py`) as single source of truth
 
 ---
 
