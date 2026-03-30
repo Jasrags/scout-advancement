@@ -25,12 +25,10 @@ Version lives in `src/version.py` (single source of truth). **Never edit it manu
 
 ### Commit prefix → version bump
 
-- `fix:` / `perf:` → patch (0.4.0 → 0.4.1)
-- `feat:` → minor (0.4.1 → 0.5.0)
-- `feat!:` or `BREAKING CHANGE` footer → major (0.x → 1.0.0)
+- `fix:` / `perf:` → patch (1.0.0 → 1.0.1)
+- `feat:` → minor (1.0.0 → 1.1.0)
+- `feat!:` or `BREAKING CHANGE` footer → major (1.0.0 → 2.0.0)
 - `docs:`, `test:`, `chore:`, `ci:`, `refactor:` → no version bump
-
-**Important:** `major_on_zero = false` is set in `pyproject.toml`, so `feat:` on `0.x` bumps minor only. A major bump to `1.0.0` requires an explicit breaking change marker.
 
 ### Release process
 
