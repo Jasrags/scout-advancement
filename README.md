@@ -1,51 +1,62 @@
-# Cub Scout Advancement List Processor
+# Scout Advancement Labels
 
-Scripts for processing CSV files of awarded advancements and generating printable labels grouped by scout.
+A desktop app that turns Scoutbook advancement CSVs into printable Avery 6427 shipping labels (2" x 4", 10 per sheet), grouped and sorted by den.
 
-## Requirements
+## Quick Start (macOS App)
 
-- Python 3.6 or higher
-- `reportlab` (for PDF label generation)
+Download the latest `.app` from [GitHub Releases](../../releases), unzip, and drag to Applications. Open the app, drop your CSV files, and click Generate.
+
+## Development Setup
+
+Requires Python 3.10+.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install reportlab
+pip install -e ".[dev]"
 ```
 
-## PDF Label Generator (Recommended)
-
-Generates ready-to-print Avery 6427 shipping labels (2" x 4", 10 per sheet) directly from advancement CSVs.
+### Run the GUI
 
 ```bash
-python generate_labels_pdf.py <input_file1.csv> [input_file2.csv ...] [-o output.pdf]
+python -m src.main
 ```
 
-### Arguments
-
-- `input_file.csv` (required): One or more CSV files containing advancement data
-- `-o output.pdf` (optional): Name for the output file (defaults to `advancement_labels.pdf`)
-
-### Examples
+### Run from CLI (legacy)
 
 ```bash
-# Single file
-python generate_labels_pdf.py advancements.csv
-
-# Multiple files combined
-python generate_labels_pdf.py january.csv february.csv march.csv
-
-# Custom output filename
-python generate_labels_pdf.py jan.csv feb.csv -o q1_labels.pdf
+python generate_labels_pdf.py <input1.csv> [input2.csv ...] [-o output.pdf]
 ```
 
-## CSV Processor (Legacy)
-
-Groups advancements by scout into a CSV for use with mail merge.
+### Lint, type-check, and test
 
 ```bash
-python advancement_processor.py <input_file1.csv> [input_file2.csv ...] [-o output_file.csv]
+ruff check src/ tests/
+mypy src/
+python -m pytest --cov=src/core --cov-report=term-missing
 ```
+
+### Build macOS .app
+
+```bash
+bash scripts/build.sh
+```
+
+Output: `dist/Scout Advancement Labels.app`
+
+## CI/CD
+
+GitHub Actions runs on every push and PR to `main`:
+
+- **Lint & Type Check** — ruff + mypy
+- **Test & Coverage** — pytest with 80% coverage gate on `src/core`
+
+On merge to `main`, if conventional commits indicate a version bump (`feat:` → minor, `fix:` → patch), the release workflow automatically:
+1. Bumps `src/version.py` and creates a git tag
+2. Builds the macOS `.app` on a GitHub-hosted runner
+3. Creates a GitHub Release with the `.app` zip and changelog
+
+Versioning is managed by [python-semantic-release](https://python-semantic-release.readthedocs.io/).
 
 ## Scoutbook Advancement Process
 
@@ -134,16 +145,6 @@ Produces a CSV with a single column containing formatted label text for each sco
 Within each den type, scouts are sorted alphabetically by last name, then first name.
 
 The PDF is designed for direct printing on Avery 6427 label sheets — no mail merge step needed.
-
-## Notes
-
-- Scouts are automatically grouped by den type (Lion → Tiger → Wolf → Bear → Webelos) for easier organization
-- Within each den type, scouts are sorted alphabetically by last name
-- Adventures appear in the order they're listed in the input file(s)
-- When processing multiple files, if the same scout appears in multiple files, all their advancements are combined
-- The output CSV is ready for use in mail merge applications
-- If a scout has multiple entries, all their advancements are grouped together
-- You can use shell wildcards (like `*.csv`) to process all CSV files in a directory
 
 ## Troubleshooting
 
