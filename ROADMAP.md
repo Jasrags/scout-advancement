@@ -8,7 +8,7 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 - **MINOR** — new features (e.g., new label types, ceremony bundles)
 - **PATCH** — bug fixes and minor improvements
 
-The version is defined in `pyproject.toml` and will be displayed in the app's About dialog.
+The version is defined in `src/version.py` (single source of truth) and displayed in the app's About dialog. Starting with v0.6.0, version bumps will be automated via conventional commits in CI.
 
 ---
 
@@ -46,7 +46,21 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 
 ## Post-MVP
 
-### v0.4.0 — Pack Ceremony Bundles
+### v0.4.0 — CI/CD & Release Automation
+- [ ] GitHub Actions CI pipeline:
+  - Lint (ruff) and type-check (mypy) on every push/PR
+  - Run pytest with coverage gate (80%+)
+  - Fail PR if tests or coverage regress
+- [ ] Automated semantic versioning:
+  - Version bumps derived from conventional commit prefixes (`feat:` → minor, `fix:` → patch, `feat!:` / `BREAKING CHANGE` → major)
+  - Single source of truth remains `src/version.py`, auto-updated by CI
+  - Git tags created on release (e.g., `v0.4.0`)
+- [ ] Automated macOS `.app` build in CI (PyInstaller on GitHub-hosted runner)
+- [ ] GitHub Releases with attached `.app` zip artifact on each tagged version
+- [ ] Changelog generation from conventional commits (auto-populated in release notes)
+- [ ] Branch protection: require passing CI before merge to `main`
+
+### v0.5.0 — Pack Ceremony Bundles
 - [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:
   - Purchase Order CSV (`PO_P####FP_######.csv`) — source data
   - Purchase Order PDF (`PO_P####FP_######.pdf`) — item order list for scout shop
@@ -55,15 +69,15 @@ The version is defined in `pyproject.toml` and will be displayed in the app's Ab
 - [ ] Pre-defined folder structure for saving ceremony bundles (e.g., `YYYY-MM-DD - Ceremony/`)
 - [ ] Date-stamped output directories
 
-### v0.5.0 — Configurable Labels
+### v0.6.0 — Configurable Labels
 - [ ] Build a catalog of Avery label types in the same size range as 6427
 - [ ] Let user select label type from a dropdown
 - [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
 - [ ] Preview label layout before printing
 
-### v0.6.0 — Windows Support
+### v0.7.0 — Windows Support
 - [ ] PyInstaller `.exe` build for Windows
-- [ ] GitHub Actions CI for cross-platform builds
+- [ ] GitHub Actions matrix build for macOS + Windows
 - [ ] Windows installer or portable `.exe`
 
 ### v1.0.0 — Production Release
