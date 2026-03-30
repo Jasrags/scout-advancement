@@ -22,9 +22,7 @@ class TestValidateCsv:
         assert "not found" in result.error.lower()
 
     def test_missing_columns(self) -> None:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write("Name,Grade\nAlice,3\n")
             path = f.name
         try:
@@ -35,9 +33,7 @@ class TestValidateCsv:
             os.unlink(path)
 
     def test_empty_csv_headers_only(self) -> None:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write('"First Name","Last Name","Den Type","Den Number","Item Name"\n')
             path = f.name
         try:
@@ -48,9 +44,7 @@ class TestValidateCsv:
             os.unlink(path)
 
     def test_completely_empty_file(self) -> None:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             path = f.name
         try:
             result = validate_csv(path)

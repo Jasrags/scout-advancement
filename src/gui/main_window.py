@@ -110,8 +110,7 @@ class MainWindow(QMainWindow):
             scouts = read_advancements(file_paths)
             result: GenerationResult = generate_pdf(scouts, save_path)
             self._status.append(
-                f"Generated {result.label_count} labels on "
-                f"{result.page_count} page(s)."
+                f"Generated {result.label_count} labels on {result.page_count} page(s)."
             )
             self._status.append(f"Saved to: {result.output_path}")
             QDesktopServices.openUrl(QUrl.fromLocalFile(result.output_path))

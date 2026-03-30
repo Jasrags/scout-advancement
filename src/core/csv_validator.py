@@ -59,6 +59,4 @@ def validate_csv(file_path: str) -> ValidationResult:
             return ValidationResult(is_valid=True, error=None, row_count=row_count)
 
     except (csv.Error, UnicodeDecodeError) as e:
-        return ValidationResult(
-            is_valid=False, error=f"Cannot parse CSV: {e}", row_count=0
-        )
+        return ValidationResult(is_valid=False, error=f"Cannot parse CSV: {e}", row_count=0)

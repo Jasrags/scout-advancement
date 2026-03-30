@@ -46,6 +46,7 @@ class TestReadAdvancements:
         scouts = read_advancements([SAMPLE_FILE_1])
         # Group by den_type, check last names are sorted within each
         from itertools import groupby
+
         for _, group in groupby(scouts, key=lambda s: s.den_type):
             group_list = list(group)
             last_names = [s.last.lower() for s in group_list]
