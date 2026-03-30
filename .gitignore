@@ -6,3 +6,6 @@ __pycache__/
 .coverage
 .pytest_cache/
 .claude/
+build/
+dist/
+*.spec.bak

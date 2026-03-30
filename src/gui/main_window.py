@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices
+import os
+
+from PySide6.QtCore import QSettings, QUrl
+from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
     QFileDialog,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
@@ -22,6 +25,7 @@ from src.core.label_generator import (
     read_advancements,
 )
 from src.gui.file_list_widget import FileListWidget
+from src.version import __version__
 
 
 class MainWindow(QMainWindow):
@@ -29,7 +33,19 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scout Advancement Labels")
         self.setMinimumSize(520, 460)
+        self._settings = QSettings("ScoutAdvancement", "ScoutLabels")
+        self._setup_menu()
         self._setup_ui()
+
+    def _setup_menu(self) -> None:
+        menu_bar = self.menuBar()
+
+        # macOS puts "About" in the app menu automatically
+        help_menu = menu_bar.addMenu("Help")
+        about_action = QAction("About Scout Advancement Labels", self)
+        about_action.setMenuRole(QAction.MenuRole.AboutRole)
+        about_action.triggered.connect(self._show_about)
+        help_menu.addAction(about_action)
 
     def _setup_ui(self) -> None:
         central = QWidget()
@@ -40,7 +56,10 @@ class MainWindow(QMainWindow):
         header.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 4px;")
         layout.addWidget(header)
 
-        subtitle = QLabel("Select Scoutbook CSV exports, then generate printable Avery 6427 labels.")
+        subtitle = QLabel(
+            "Select Scoutbook CSV exports (or drag and drop), "
+            "then generate printable Avery 6427 labels."
+        )
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
 
@@ -68,14 +87,20 @@ class MainWindow(QMainWindow):
         if not file_paths:
             return
 
+        last_dir = self._settings.value("last_save_dir", "")
+        default_path = os.path.join(last_dir, "advancement_labels.pdf") if last_dir else "advancement_labels.pdf"
+
         save_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Labels PDF",
-            "advancement_labels.pdf",
+            default_path,
             "PDF Files (*.pdf)",
         )
         if not save_path:
             return
+
+        # Remember the directory for next time
+        self._settings.setValue("last_save_dir", os.path.dirname(save_path))
 
         self._status.clear()
         self._status.append(f"Processing {len(file_paths)} file(s)...")
@@ -93,3 +118,14 @@ class MainWindow(QMainWindow):
             self._status.append(f"Error: {e}")
         except OSError as e:
             self._status.append(f"Error writing PDF: {e}")
+
+    def _show_about(self) -> None:
+        QMessageBox.about(
+            self,
+            "About Scout Advancement Labels",
+            f"<h3>Scout Advancement Labels</h3>"
+            f"<p>Version {__version__}</p>"
+            f"<p>Generates printable Avery 6427 labels from "
+            f"Scoutbook advancement CSV exports.</p>"
+            f"<p>Built for Cub Scout pack advancement chairs.</p>",
+        )

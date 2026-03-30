@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "scout-advancement"
-version = "0.1.0"
+version = "0.3.0"
 description = "Scout advancement label generator — CSV to printable Avery 6427 labels"
 requires-python = ">=3.10"
 dependencies = [
