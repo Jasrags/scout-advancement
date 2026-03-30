@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -62,7 +63,7 @@ class FileListWidget(QWidget):
 
     # --- Drag and drop ---
 
-    def dragEnterEvent(self, event) -> None:  # type: ignore[override]
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # type: ignore[override]
         if event.mimeData().hasUrls():
             # Accept if any URL is a .csv file
             for url in event.mimeData().urls():
@@ -71,13 +72,13 @@ class FileListWidget(QWidget):
                     return
         event.ignore()
 
-    def dragMoveEvent(self, event) -> None:  # type: ignore[override]
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # type: ignore[override]
         event.acceptProposedAction()
 
     # Maximum file size for dropped files (10 MB)
     _MAX_FILE_SIZE = 10 * 1024 * 1024
 
-    def dropEvent(self, event) -> None:  # type: ignore[override]
+    def dropEvent(self, event: QDropEvent) -> None:  # type: ignore[override]
         added = False
         for url in event.mimeData().urls():
             if url.isLocalFile():

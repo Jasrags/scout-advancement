@@ -9,8 +9,8 @@ from src.core.label_generator import (
     CSVColumnError,
     CSVReadError,
     ScoutRecord,
-    read_advancements,
     generate_pdf,
+    read_advancements,
 )
 
 SAMPLE_DIR = os.path.join(os.path.dirname(__file__), "..", "sample_data")

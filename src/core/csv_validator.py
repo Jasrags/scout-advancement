@@ -34,7 +34,7 @@ def validate_csv(file_path: str) -> ValidationResult:
         return ValidationResult(is_valid=False, error=f"Not a file: {path.name}", row_count=0)
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
 
             if reader.fieldnames is None:

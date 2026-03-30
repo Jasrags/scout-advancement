@@ -8,7 +8,7 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 - **MINOR** — new features (e.g., new label types, ceremony bundles)
 - **PATCH** — bug fixes and minor improvements
 
-The version is defined in `src/version.py` (single source of truth) and displayed in the app's About dialog. Starting with v0.6.0, version bumps will be automated via conventional commits in CI.
+The version is defined in `src/version.py` (single source of truth) and displayed in the app's About dialog. Starting with v0.4.0, version bumps are automated via conventional commits and `python-semantic-release` in CI.
 
 ---
 
@@ -47,18 +47,22 @@ The version is defined in `src/version.py` (single source of truth) and displaye
 ## Post-MVP
 
 ### v0.4.0 — CI/CD & Release Automation
-- [ ] GitHub Actions CI pipeline:
+- [x] GitHub Actions CI pipeline (`.github/workflows/ci.yml`):
   - Lint (ruff) and type-check (mypy) on every push/PR
-  - Run pytest with coverage gate (80%+)
+  - Run pytest with coverage gate (80%+ on `src/core`)
   - Fail PR if tests or coverage regress
-- [ ] Automated semantic versioning:
+- [x] Automated semantic versioning (`python-semantic-release`):
   - Version bumps derived from conventional commit prefixes (`feat:` → minor, `fix:` → patch, `feat!:` / `BREAKING CHANGE` → major)
   - Single source of truth remains `src/version.py`, auto-updated by CI
   - Git tags created on release (e.g., `v0.4.0`)
-- [ ] Automated macOS `.app` build in CI (PyInstaller on GitHub-hosted runner)
-- [ ] GitHub Releases with attached `.app` zip artifact on each tagged version
-- [ ] Changelog generation from conventional commits (auto-populated in release notes)
+- [x] Automated macOS `.app` build in CI (PyInstaller on GitHub-hosted `macos-latest` runner)
+- [x] GitHub Releases with attached `.app` zip artifact on each tagged version (`.github/workflows/release.yml`)
+- [x] Changelog generation from conventional commits (auto-populated in release notes)
 - [ ] Branch protection: require passing CI before merge to `main`
+  - **Manual setup required** in GitHub → Settings → Branches → Add rule for `main`:
+    - Require status checks: `Lint & Type Check`, `Test & Coverage`
+    - Require branches to be up to date before merging
+    - Optionally require PR reviews
 
 ### v0.5.0 — Pack Ceremony Bundles
 - [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:

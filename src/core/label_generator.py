@@ -16,7 +16,6 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
-
 # --- Avery 6427 / 5163 Shipping Label Layout (US Letter) ---
 PAGE_WIDTH, PAGE_HEIGHT = LETTER  # 8.5" x 11"
 
@@ -100,7 +99,7 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
 
     for input_file in input_files:
         try:
-            with open(input_file, "r", encoding="utf-8") as f:
+            with open(input_file, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames is None:
                     raise CSVColumnError(f"Empty or unreadable CSV: '{input_file}'")
@@ -125,11 +124,11 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
                             "den_num": den_num,
                             "items": [],
                         }
-                    scouts[key]["items"].append(item)  # type: ignore[union-attr]
+                    scouts[key]["items"].append(item)  # type: ignore[union-attr,attr-defined]
         except FileNotFoundError:
-            raise CSVReadError(f"Could not find '{input_file}'")
+            raise CSVReadError(f"Could not find '{input_file}'") from None
         except KeyError as e:
-            raise CSVColumnError(f"Missing column {e} in '{input_file}'")
+            raise CSVColumnError(f"Missing column {e} in '{input_file}'") from e
 
     def sort_key(record: dict[str, object]) -> tuple[int, str, str]:
         den = str(record["den_type"]).lower()

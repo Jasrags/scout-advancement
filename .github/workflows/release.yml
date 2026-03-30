@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "CHANGELOG.md"
+
+permissions:
+  contents: write
+
+jobs:
+  # Only run release when CI passes
+  ci-check:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Semantic Release
+    needs: ci-check
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.semrel.outputs.released }}
+      version: ${{ steps.semrel.outputs.version }}
+      tag: ${{ steps.semrel.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install semantic-release
+        run: pip install python-semantic-release>=9.0
+
+      - name: Run semantic-release
+        id: semrel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUTPUT=$(semantic-release version --print 2>&1) || true
+          if echo "$OUTPUT" | grep -q "No release will be made"; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            semantic-release version
+            VERSION=$(python -c "from src.version import __version__; print(__version__)")
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-macos:
+    name: Build macOS App
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Build .app with PyInstaller
+        run: |
+          bash scripts/build.sh
+
+      - name: Zip .app bundle
+        run: |
+          cd dist
+          zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos.zip" "Scout Advancement Labels.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/Scout-Advancement-Labels-*.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [release, build-macos]
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-app
+          path: dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          pip install python-semantic-release>=9.0
+          semantic-release changelog --post >> changelog_body.md 2>/dev/null || true
+          if [ ! -s changelog_body.md ]; then
+            echo "Release ${{ needs.release.outputs.tag }}" > changelog_body.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ needs.release.outputs.tag }}" \
+            dist/Scout-Advancement-Labels-*.zip \
+            --title "Release ${{ needs.release.outputs.tag }}" \
+            --notes-file changelog_body.md

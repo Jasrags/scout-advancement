@@ -87,8 +87,9 @@ class MainWindow(QMainWindow):
         if not file_paths:
             return
 
-        last_dir = self._settings.value("last_save_dir", "")
-        default_path = os.path.join(last_dir, "advancement_labels.pdf") if last_dir else "advancement_labels.pdf"
+        last_dir = str(self._settings.value("last_save_dir", ""))
+        default_name = "advancement_labels.pdf"
+        default_path = os.path.join(last_dir, default_name) if last_dir else default_name
 
         save_path, _ = QFileDialog.getSaveFileName(
             self,
