@@ -8,7 +8,7 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 - **MINOR** — new features (e.g., new label types, ceremony bundles)
 - **PATCH** — bug fixes and minor improvements
 
-The version is defined in `src/version.py` (single source of truth) and displayed in the app's About dialog. Starting with v0.4.0, version bumps are automated via conventional commits and `python-semantic-release` in CI.
+The version is defined in `src/version.py` (single source of truth) and displayed in the app's About dialog. Version bumps are automated via conventional commits and `python-semantic-release` in CI.
 
 ---
 
@@ -64,27 +64,43 @@ The version is defined in `src/version.py` (single source of truth) and displaye
     - Require branches to be up to date before merging
     - Optionally require PR reviews
 
-### v0.5.0 — Pack Ceremony Bundles
+### v1.0.0 — Bagging Guide & Release Pipeline
+- [x] Bagging guide PDF generator:
+  - Per-scout checklist with checkboxes, adventure loop/pin images, and Required/Elective tags
+  - Adventure data for all 6 ranks (Lion through Arrow of Light) sourced from scouting.org
+  - Images downloaded and cached locally from scouting.org WordPress API
+  - Condensed layout — scouts flow continuously across pages to minimize paper usage
+  - Scraper script (`scripts/fetch_adventures.py`) to refresh data when program year changes
+- [x] GUI: "Generate Bagging Guide" button alongside existing "Generate Labels PDF"
+- [x] Release pipeline fixed and tested end-to-end
+- [x] Idempotent release workflow (handles re-runs without failing)
+
+---
+
+## Planned
+
+### v1.1.0 — Pack Ceremony Bundles
 - [ ] Create a "ceremony day" bundle containing all Scoutbook outputs plus generated labels:
   - Purchase Order CSV (`PO_P####FP_######.csv`) — source data
   - Purchase Order PDF (`PO_P####FP_######.pdf`) — item order list for scout shop
   - Advancement Report PDF (`Advancement_Report_*.pdf`) — official BSA form for Council
-  - Generated label PDF — output from this tool
+  - Generated label PDF and bagging guide — outputs from this tool
 - [ ] Pre-defined folder structure for saving ceremony bundles (e.g., `YYYY-MM-DD - Ceremony/`)
 - [ ] Date-stamped output directories
 
-### v0.6.0 — Configurable Labels
+### v1.2.0 — Configurable Labels
 - [ ] Build a catalog of Avery label types in the same size range as 6427
 - [ ] Let user select label type from a dropdown
 - [ ] Editable label templates — customize which CSV columns appear on the label and how they are formatted (e.g., include/exclude den number, change name order, add date earned, show SKU)
 - [ ] Preview label layout before printing
 
-### v0.7.0 — Windows Support
+### v1.3.0 — Windows Support
 - [ ] PyInstaller `.exe` build for Windows
 - [ ] GitHub Actions matrix build for macOS + Windows
 - [ ] Windows installer or portable `.exe`
 
-### v1.0.0 — Production Release
+### Future
+- [ ] Pack-wide inventory summary page (total item counts across all scouts)
 - [ ] Auto-update check (notify when new version is available)
 - [ ] Code signing for macOS (Developer ID) and Windows
 - [ ] DMG installer with drag-to-Applications

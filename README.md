@@ -1,10 +1,10 @@
 # Scout Advancement Labels
 
-A desktop app that turns Scoutbook advancement CSVs into printable Avery 6427 shipping labels (2" x 4", 10 per sheet), grouped and sorted by den.
+A desktop app that turns Scoutbook advancement CSVs into printable Avery 6427 shipping labels (2" x 4", 10 per sheet) and bagging guides with adventure loop/pin images, grouped and sorted by den.
 
 ## Quick Start (macOS App)
 
-Download the latest `.app` from [GitHub Releases](../../releases), unzip, and drag to Applications. Open the app, drop your CSV files, and click Generate.
+Download the latest `.app` from [GitHub Releases](../../releases), unzip, and drag to Applications. Open the app, drop your CSV files, and click **Generate Labels PDF** or **Generate Bagging Guide**.
 
 ## Development Setup
 
@@ -64,13 +64,11 @@ Version bumps are determined by conventional commit prefixes. Use the right pref
 
 | Commit prefix | Version bump | Example |
 |---------------|-------------|---------|
-| `fix:` | Patch (0.4.0 → 0.4.1) | `fix: handle empty CSV gracefully` |
-| `perf:` | Patch (0.4.0 → 0.4.1) | `perf: reduce PDF generation time` |
-| `feat:` | Minor (0.4.1 → 0.5.0) | `feat: add ceremony bundle export` |
-| `feat!:` or `BREAKING CHANGE` | Major (0.x → 1.0.0) | `feat!: new CSV format` |
+| `fix:` | Patch (1.0.0 → 1.0.1) | `fix: handle empty CSV gracefully` |
+| `perf:` | Patch (1.0.0 → 1.0.1) | `perf: reduce PDF generation time` |
+| `feat:` | Minor (1.0.0 → 1.1.0) | `feat: add ceremony bundle export` |
+| `feat!:` or `BREAKING CHANGE` | Major (1.0.0 → 2.0.0) | `feat!: new CSV format` |
 | `docs:`, `test:`, `chore:`, `ci:`, `refactor:` | No bump | `docs: update README` |
-
-While on `0.x`, `feat:` bumps minor only (not major). A major bump to `1.0.0` requires an explicit `feat!:` or `BREAKING CHANGE` footer.
 
 The single source of truth for the version is `src/version.py` — do not edit it manually; let semantic-release handle it.
 
@@ -130,7 +128,7 @@ Liam,Carter,lions,2,1,646406,Adventure,2.19,Mountain Lion Adventure,2025-12-10
 
 ## Output
 
-### PDF Labels (`generate_labels_pdf.py`)
+### PDF Labels
 
 Produces a print-ready PDF with Avery 6427 shipping labels. Each label contains:
 
@@ -139,14 +137,17 @@ First Last [Den Type (Den #)]
 Award 1, Award 2, Award 3...
 ```
 
-### CSV (`advancement_processor.py`)
+### Bagging Guide
 
-Produces a CSV with a single column containing formatted label text for each scout:
+Produces a PDF checklist to help volunteers bag the correct adventure loops and pins for each scout. Each entry shows:
 
-```
-[Name] - [Den Type]
-[Advancements]
-```
+- A checkbox for tracking
+- The adventure loop/pin image (downloaded from scouting.org)
+- The adventure name with a Required/Elective tag
+
+Scouts flow continuously across pages to minimize paper usage. Images are cached locally after the first download.
+
+All six Cub Scout ranks are supported: Lion, Tiger, Wolf, Bear, Webelos, and Arrow of Light.
 
 ### Sort Order
 
