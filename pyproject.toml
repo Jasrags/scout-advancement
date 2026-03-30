@@ -54,6 +54,7 @@ check_untyped_defs = true
 version_toml = []
 version_variables = ["src/version.py:__version__"]
 branch = "main"
+major_on_zero = false
 commit_message = "chore(release): v{version}"
 build_command = ""
 
