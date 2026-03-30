@@ -74,14 +74,23 @@ class FileListWidget(QWidget):
     def dragMoveEvent(self, event) -> None:  # type: ignore[override]
         event.acceptProposedAction()
 
+    # Maximum file size for dropped files (10 MB)
+    _MAX_FILE_SIZE = 10 * 1024 * 1024
+
     def dropEvent(self, event) -> None:  # type: ignore[override]
         added = False
         for url in event.mimeData().urls():
             if url.isLocalFile():
                 file_path = url.toLocalFile()
-                if file_path.lower().endswith(".csv") and file_path not in self._file_paths:
-                    self._add_file(file_path)
-                    added = True
+                if not file_path.lower().endswith(".csv") or file_path in self._file_paths:
+                    continue
+                try:
+                    if Path(file_path).stat().st_size > self._MAX_FILE_SIZE:
+                        continue
+                except OSError:
+                    continue
+                self._add_file(file_path)
+                added = True
         if added:
             self._update_buttons()
             self.files_changed.emit(self.valid_file_count())

@@ -16,7 +16,7 @@ else
 fi
 
 # Ensure dependencies
-pip install --quiet pyinstaller reportlab PySide6
+pip install --quiet "pyinstaller>=6.0,<7.0" "reportlab>=4.0,<5.0" "PySide6>=6.6,<7.0"
 
 # Clean previous builds
 rm -rf "$ROOT/build" "$ROOT/dist"

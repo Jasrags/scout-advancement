@@ -2,13 +2,19 @@
 """PyInstaller spec for Scout Advancement Labels."""
 
 import os
-import sys
+import re
 
 block_cipher = None
 
 # Paths
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(SPEC)))
 ICON = os.path.join(ROOT, "packaging", "icon.icns")
+
+# Read version from src/version.py
+_version_file = os.path.join(ROOT, "src", "version.py")
+with open(_version_file) as _f:
+    _match = re.search(r'__version__\s*=\s*"([^"]+)"', _f.read())
+    VERSION = _match.group(1) if _match else "0.0.0"
 
 a = Analysis(
     [os.path.join(ROOT, "src", "main.py")],
@@ -99,8 +105,8 @@ app = BUNDLE(
     icon=ICON,
     bundle_identifier="com.scoutadvancement.labels",
     info_plist={
-        "CFBundleShortVersionString": "0.3.0",
-        "CFBundleVersion": "0.3.0",
+        "CFBundleShortVersionString": VERSION,
+        "CFBundleVersion": VERSION,
         "NSHighResolutionCapable": True,
         "CFBundleDocumentTypes": [
             {

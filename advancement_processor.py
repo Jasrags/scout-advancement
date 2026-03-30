@@ -11,6 +11,16 @@ import csv
 import sys
 from collections import OrderedDict
 
+# Characters that trigger formula execution in spreadsheets
+_CSV_INJECTION_CHARS = frozenset("=+-@|")
+
+
+def _sanitize_csv_value(value: str) -> str:
+    """Prefix values starting with formula-trigger characters with a tab."""
+    if value and value[0] in _CSV_INJECTION_CHARS:
+        return f"\t{value}"
+    return value
+
 
 def process_advancements(input_files, output_file):
     """
@@ -67,7 +77,7 @@ def process_advancements(input_files, output_file):
             print(f"  ✗ Error: Missing required column in CSV: {e}")
             print("    Required columns: First Name, Last Name, Den Type, Item Name")
             sys.exit(1)
-        except Exception as e:
+        except (csv.Error, UnicodeDecodeError, PermissionError, OSError) as e:
             print(f"  ✗ Error processing file: {e}")
             sys.exit(1)
     
@@ -95,14 +105,14 @@ def process_advancements(input_files, output_file):
                 # Create formatted label text
                 label_text = f"{full_name} - {den_type}\n{items_list}"
                 
-                writer.writerow([label_text])
+                writer.writerow([_sanitize_csv_value(label_text)])
         
         print(f"\n✓ Successfully processed {len(scouts)} scouts")
         print(f"✓ Scouts grouped by den type: Lion → Tiger → Wolf → Bear → Webelos")
         print(f"✓ Labels formatted as: [Name] - [Den Type]\\n[Advancements]")
         print(f"✓ Output written to: {output_file}")
         
-    except Exception as e:
+    except (PermissionError, OSError) as e:
         print(f"\n✗ Error writing output file: {e}")
         sys.exit(1)
 

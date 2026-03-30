@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 from collections import OrderedDict
 from dataclasses import dataclass
+from pathlib import Path
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
@@ -58,6 +59,11 @@ DEN_TYPE_ORDER: dict[str, int] = {
 
 REQUIRED_COLUMNS = {"First Name", "Last Name", "Den Type", "Den Number", "Item Name"}
 
+# Field length limits to prevent malformed CSVs from overflowing labels
+MAX_NAME_LEN = 50
+MAX_DEN_TYPE_LEN = 30
+MAX_ITEM_NAME_LEN = 100
+
 
 class CSVReadError(Exception):
     """Raised when a CSV file cannot be read."""
@@ -96,18 +102,19 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
         try:
             with open(input_file, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                if reader.fieldnames is not None:
-                    missing = REQUIRED_COLUMNS - set(reader.fieldnames)
-                    if missing:
-                        raise CSVColumnError(
-                            f"Missing columns in '{input_file}': {', '.join(sorted(missing))}"
-                        )
+                if reader.fieldnames is None:
+                    raise CSVColumnError(f"Empty or unreadable CSV: '{input_file}'")
+                missing = REQUIRED_COLUMNS - set(reader.fieldnames)
+                if missing:
+                    raise CSVColumnError(
+                        f"Missing columns in '{input_file}': {', '.join(sorted(missing))}"
+                    )
                 for row in reader:
-                    first = row["First Name"].strip()
-                    last = row["Last Name"].strip()
-                    den_type = row["Den Type"].strip()
-                    den_num = row["Den Number"].strip()
-                    item = row["Item Name"].strip()
+                    first = row["First Name"].strip()[:MAX_NAME_LEN]
+                    last = row["Last Name"].strip()[:MAX_NAME_LEN]
+                    den_type = row["Den Type"].strip()[:MAX_DEN_TYPE_LEN]
+                    den_num = row["Den Number"].strip()[:MAX_DEN_TYPE_LEN]
+                    item = row["Item Name"].strip()[:MAX_ITEM_NAME_LEN]
 
                     key = (first, last, den_type, den_num)
                     if key not in scouts:
@@ -208,6 +215,14 @@ def generate_pdf(scouts: list[ScoutRecord], output_path: str) -> GenerationResul
     Raises:
         OSError: If the output file cannot be written.
     """
+    resolved = Path(output_path).resolve()
+    if resolved.suffix.lower() != ".pdf":
+        raise OSError(f"Output path must end with .pdf: {resolved.name}")
+    parent = resolved.parent
+    if not parent.exists():
+        raise OSError(f"Output directory does not exist: {parent}")
+    output_path = str(resolved)
+
     c = canvas.Canvas(output_path, pagesize=LETTER)
     c.setTitle("Cub Scout Advancement Labels")
 

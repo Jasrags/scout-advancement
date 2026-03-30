@@ -26,7 +26,7 @@ class TestReadAdvancements:
 
     def test_reads_multiple_files(self) -> None:
         scouts = read_advancements([SAMPLE_FILE_1, SAMPLE_FILE_2])
-        assert len(scouts) > read_advancements([SAMPLE_FILE_1]).__len__()
+        assert len(scouts) > len(read_advancements([SAMPLE_FILE_1]))
 
     def test_sort_order_den_types(self) -> None:
         scouts = read_advancements([SAMPLE_FILE_1])
@@ -61,16 +61,25 @@ class TestReadAdvancements:
         with pytest.raises(CSVReadError, match="Could not find"):
             read_advancements(["nonexistent_file.csv"])
 
+    def test_empty_csv_raises_csv_column_error(self) -> None:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            path = f.name
+        try:
+            with pytest.raises(CSVColumnError, match="Empty or unreadable"):
+                read_advancements([path])
+        finally:
+            os.unlink(path)
+
     def test_missing_columns_raises_csv_column_error(self) -> None:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write("Name,Grade\n")
             f.write("Alice,3\n")
-            f.name
+            path = f.name
         try:
             with pytest.raises(CSVColumnError, match="Missing columns"):
-                read_advancements([f.name])
+                read_advancements([path])
         finally:
-            os.unlink(f.name)
+            os.unlink(path)
 
 
 class TestGeneratePdf:
@@ -97,6 +106,11 @@ class TestGeneratePdf:
             assert result.page_count == expected_pages
         finally:
             os.unlink(output_path)
+
+    def test_nonexistent_output_dir_raises_os_error(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        with pytest.raises(OSError, match="Output directory does not exist"):
+            generate_pdf(scouts, "/nonexistent_dir/output.pdf")
 
     def test_empty_scout_list(self) -> None:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
