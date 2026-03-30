@@ -8,6 +8,7 @@ from PySide6.QtCore import QSettings, QUrl
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
     QFileDialog,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.core.bagging_guide import BaggingGuideResult, generate_bagging_guide
 from src.core.label_generator import (
     CSVColumnError,
     CSVReadError,
@@ -67,11 +69,21 @@ class MainWindow(QMainWindow):
         self._file_list.files_changed.connect(self._on_files_changed)
         layout.addWidget(self._file_list, stretch=1)
 
+        btn_layout = QHBoxLayout()
+
         self._generate_btn = QPushButton("Generate Labels PDF")
         self._generate_btn.setEnabled(False)
         self._generate_btn.setMinimumHeight(36)
         self._generate_btn.clicked.connect(self._on_generate)
-        layout.addWidget(self._generate_btn)
+        btn_layout.addWidget(self._generate_btn)
+
+        self._bagging_btn = QPushButton("Generate Bagging Guide")
+        self._bagging_btn.setEnabled(False)
+        self._bagging_btn.setMinimumHeight(36)
+        self._bagging_btn.clicked.connect(self._on_generate_bagging_guide)
+        btn_layout.addWidget(self._bagging_btn)
+
+        layout.addLayout(btn_layout)
 
         self._status = QTextEdit()
         self._status.setReadOnly(True)
@@ -80,7 +92,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._status)
 
     def _on_files_changed(self, valid_count: int) -> None:
-        self._generate_btn.setEnabled(valid_count > 0)
+        has_files = valid_count > 0
+        self._generate_btn.setEnabled(has_files)
+        self._bagging_btn.setEnabled(has_files)
 
     def _on_generate(self) -> None:
         file_paths = self._file_list.get_valid_file_paths()
@@ -111,6 +125,44 @@ class MainWindow(QMainWindow):
             result: GenerationResult = generate_pdf(scouts, save_path)
             self._status.append(
                 f"Generated {result.label_count} labels on {result.page_count} page(s)."
+            )
+            self._status.append(f"Saved to: {result.output_path}")
+            QDesktopServices.openUrl(QUrl.fromLocalFile(result.output_path))
+        except (CSVReadError, CSVColumnError) as e:
+            self._status.append(f"Error: {e}")
+        except OSError as e:
+            self._status.append(f"Error writing PDF: {e}")
+
+    def _on_generate_bagging_guide(self) -> None:
+        file_paths = self._file_list.get_valid_file_paths()
+        if not file_paths:
+            return
+
+        last_dir = str(self._settings.value("last_save_dir", ""))
+        default_name = "bagging_guide.pdf"
+        default_path = os.path.join(last_dir, default_name) if last_dir else default_name
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Bagging Guide PDF",
+            default_path,
+            "PDF Files (*.pdf)",
+        )
+        if not save_path:
+            return
+
+        self._settings.setValue("last_save_dir", os.path.dirname(save_path))
+
+        self._status.clear()
+        self._status.append(f"Processing {len(file_paths)} file(s)...")
+        self._status.append("Downloading adventure images (first run may take a moment)...")
+
+        try:
+            scouts = read_advancements(file_paths)
+            result: BaggingGuideResult = generate_bagging_guide(scouts, save_path)
+            self._status.append(
+                f"Generated bagging guide for {result.scout_count} scout(s) "
+                f"on {result.page_count} page(s)."
             )
             self._status.append(f"Saved to: {result.output_path}")
             QDesktopServices.openUrl(QUrl.fromLocalFile(result.output_path))
