@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-03-31)
+
+### Features
+
+- Add Windows support with PyInstaller .exe build and CI matrix
+  ([`a939ac5`](https://github.com/Jasrags/scout-advancement/commit/a939ac54ab56748483e44a284aa590c73fd10bfc))
+
+
 ## v1.1.0 (2026-03-31)
 
 ### Bug Fixes
