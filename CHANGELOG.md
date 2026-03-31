@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-03-31)
+
+### Bug Fixes
+
+- Bundle VC++ runtime DLLs in Windows .exe build
+  ([`59ca309`](https://github.com/Jasrags/scout-advancement/commit/59ca3093de8c96262c5c98be75e49d8b5de25660))
+
+
 ## v1.2.0 (2026-03-31)
 
 ### Features
