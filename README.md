@@ -8,18 +8,23 @@ Download the latest `.app` from [GitHub Releases](../../releases), unzip, and dr
 
 ## Development Setup
 
-Requires Python 3.10+.
+Requires Python 3.10+ and `make`.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+make install    # create venv and install deps
+make run        # launch the GUI
 ```
 
-### Run the GUI
+### Common Commands
 
 ```bash
-python -m src.main
+make test       # run tests with 80% coverage gate
+make lint       # ruff check + format check + mypy
+make format     # auto-format code
+make build      # build macOS .app (output: dist/Scout Advancement Labels.app)
+make release    # trigger GitHub release workflow
+make clean      # remove build artifacts and caches
+make help       # list all targets
 ```
 
 ### Run from CLI (legacy)
@@ -27,22 +32,6 @@ python -m src.main
 ```bash
 python generate_labels_pdf.py <input1.csv> [input2.csv ...] [-o output.pdf]
 ```
-
-### Lint, type-check, and test
-
-```bash
-ruff check src/ tests/
-mypy src/
-python -m pytest --cov=src/core --cov-report=term-missing
-```
-
-### Build macOS .app
-
-```bash
-bash scripts/build.sh
-```
-
-Output: `dist/Scout Advancement Labels.app`
 
 ## CI/CD
 
