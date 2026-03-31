@@ -12,7 +12,7 @@ from src.core.label_generator import (
     generate_pdf,
     read_advancements,
 )
-from src.core.label_spec import AVERY_5160, AVERY_5164, AVERY_6427
+from src.core.label_spec import AVERY_5160, AVERY_5164, AVERY_6427, LabelTemplate
 
 SAMPLE_DIR = os.path.join(os.path.dirname(__file__), "..", "sample_data")
 SAMPLE_FILE_1 = os.path.join(SAMPLE_DIR, "PO_P2001FP_2000001.csv")
@@ -150,6 +150,33 @@ class TestGeneratePdf:
             assert result.page_count == expected_pages
         finally:
             os.unlink(output_path)
+
+    def test_generates_with_template(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        tmpl = LabelTemplate(
+            name_order="last_first",
+            show_den_number=False,
+            show_date_earned=True,
+            show_sku=True,
+        )
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            output_path = f.name
+        try:
+            result = generate_pdf(scouts, output_path, label_template=tmpl)
+            assert result.label_count == len(scouts)
+            assert os.path.getsize(result.output_path) > 0
+        finally:
+            os.unlink(output_path)
+
+    def test_item_details_populated(self) -> None:
+        scouts = read_advancements([SAMPLE_FILE_1])
+        # CSV has SKU and Date Earned columns, so item_details should be populated
+        for scout in scouts:
+            assert len(scout.item_details) == len(scout.items)
+            for detail in scout.item_details:
+                assert detail.name  # name is always present
+                assert detail.sku  # sample data has SKUs
+                assert detail.date_earned  # sample data has dates
 
     def test_default_spec_matches_6427(self) -> None:
         scouts = read_advancements([SAMPLE_FILE_1])

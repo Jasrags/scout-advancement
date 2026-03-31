@@ -136,6 +136,36 @@ LABEL_CATALOG: list[LabelSpec] = [
 DEFAULT_LABEL_SPEC = AVERY_6427
 
 
+@dataclass(frozen=True)
+class LabelTemplate:
+    """Controls what content appears on each label."""
+
+    name_order: str = "first_last"  # "first_last" or "last_first"
+    show_den_number: bool = True
+    show_date_earned: bool = False
+    show_sku: bool = False
+
+    def format_name(self, first: str, last: str, den_type: str, den_num: str) -> str:
+        """Format the scout name line according to template settings."""
+        den_display = den_type.title()
+        name = f"{last}, {first}" if self.name_order == "last_first" else f"{first} {last}"
+        if self.show_den_number:
+            return f"{name} [{den_display} ({den_num})]"
+        return f"{name} [{den_display}]"
+
+    def format_item(self, name: str, sku: str, date_earned: str) -> str:
+        """Format a single item according to template settings."""
+        parts = [name]
+        if self.show_sku and sku:
+            parts.append(f"[{sku}]")
+        if self.show_date_earned and date_earned:
+            parts.append(f"({date_earned})")
+        return " ".join(parts)
+
+
+DEFAULT_LABEL_TEMPLATE = LabelTemplate()
+
+
 def get_label_spec(name: str) -> LabelSpec | None:
     """Look up a label spec by name (e.g. 'Avery 6427')."""
     for spec in LABEL_CATALOG:

@@ -27,9 +27,16 @@ from src.core.label_generator import (
     generate_pdf,
     read_advancements,
 )
-from src.core.label_spec import DEFAULT_LABEL_SPEC, LABEL_CATALOG, LabelSpec, get_label_spec
+from src.core.label_spec import (
+    DEFAULT_LABEL_SPEC,
+    LABEL_CATALOG,
+    LabelSpec,
+    LabelTemplate,
+    get_label_spec,
+)
 from src.gui.file_list_widget import FileListWidget
 from src.gui.label_preview import LabelPreviewDialog
+from src.gui.label_settings import LabelSettingsDialog, load_template_from_settings
 from src.version import __version__
 
 
@@ -84,6 +91,11 @@ class MainWindow(QMainWindow):
             self._label_combo.setCurrentIndex(idx)
         self._label_combo.currentIndexChanged.connect(self._on_label_type_changed)
         label_layout.addWidget(self._label_combo, stretch=1)
+
+        self._settings_btn = QPushButton("Settings...")
+        self._settings_btn.clicked.connect(self._on_settings)
+        label_layout.addWidget(self._settings_btn)
+
         layout.addLayout(label_layout)
 
         # Action buttons
@@ -125,9 +137,16 @@ class MainWindow(QMainWindow):
         name = self._label_combo.currentData()
         self._settings.setValue("label_type", name)
 
+    def _on_settings(self) -> None:
+        dialog = LabelSettingsDialog(self._settings, parent=self)
+        dialog.exec()
+
     def _selected_label_spec(self) -> LabelSpec:
         name = self._label_combo.currentData()
         return get_label_spec(name) or DEFAULT_LABEL_SPEC
+
+    def _selected_template(self) -> LabelTemplate:
+        return load_template_from_settings(self._settings)
 
     def _on_preview(self) -> None:
         file_paths = self._file_list.get_valid_file_paths()
@@ -137,7 +156,8 @@ class MainWindow(QMainWindow):
         try:
             scouts = read_advancements(file_paths)
             spec = self._selected_label_spec()
-            dialog = LabelPreviewDialog(scouts, spec, parent=self)
+            tmpl = self._selected_template()
+            dialog = LabelPreviewDialog(scouts, spec, tmpl, parent=self)
             dialog.exec()
         except (CSVReadError, CSVColumnError) as e:
             self._status.clear()
@@ -165,12 +185,15 @@ class MainWindow(QMainWindow):
         self._settings.setValue("last_save_dir", os.path.dirname(save_path))
 
         spec = self._selected_label_spec()
+        tmpl = self._selected_template()
         self._status.clear()
         self._status.append(f"Processing {len(file_paths)} file(s) with {spec.name}...")
 
         try:
             scouts = read_advancements(file_paths)
-            result: GenerationResult = generate_pdf(scouts, save_path, label_spec=spec)
+            result: GenerationResult = generate_pdf(
+                scouts, save_path, label_spec=spec, label_template=tmpl
+            )
             self._status.append(
                 f"Generated {result.label_count} labels on {result.page_count} page(s)."
             )

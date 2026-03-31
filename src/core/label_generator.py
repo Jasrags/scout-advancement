@@ -16,7 +16,12 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
-from src.core.label_spec import DEFAULT_LABEL_SPEC, LabelSpec
+from src.core.label_spec import (
+    DEFAULT_LABEL_SPEC,
+    DEFAULT_LABEL_TEMPLATE,
+    LabelSpec,
+    LabelTemplate,
+)
 
 # --- Page size ---
 PAGE_WIDTH, PAGE_HEIGHT = LETTER  # 8.5" x 11"
@@ -75,12 +80,20 @@ class CSVColumnError(Exception):
 
 
 @dataclass(frozen=True)
+class ItemDetail:
+    name: str
+    sku: str = ""
+    date_earned: str = ""
+
+
+@dataclass(frozen=True)
 class ScoutRecord:
     first: str
     last: str
     den_type: str
     den_num: str
     items: tuple[str, ...]
+    item_details: tuple[ItemDetail, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -116,6 +129,8 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
                     den_type = row["Den Type"].strip()[:MAX_DEN_TYPE_LEN]
                     den_num = row["Den Number"].strip()[:MAX_DEN_TYPE_LEN]
                     item = row["Item Name"].strip()[:MAX_ITEM_NAME_LEN]
+                    sku = row.get("SKU", "").strip()[:20]
+                    date_earned = row.get("Date Earned", "").strip()[:10]
 
                     key = (first, last, den_type, den_num)
                     if key not in scouts:
@@ -125,8 +140,12 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
                             "den_type": den_type,
                             "den_num": den_num,
                             "items": [],
+                            "item_details": [],
                         }
                     scouts[key]["items"].append(item)  # type: ignore[union-attr,attr-defined]
+                    scouts[key]["item_details"].append(  # type: ignore[union-attr,attr-defined]
+                        ItemDetail(name=item, sku=sku, date_earned=date_earned)
+                    )
         except FileNotFoundError:
             raise CSVReadError(f"Could not find '{input_file}'") from None
         except KeyError as e:
@@ -145,6 +164,7 @@ def read_advancements(input_files: list[str]) -> list[ScoutRecord]:
             den_type=str(s["den_type"]),
             den_num=str(s["den_num"]),
             items=tuple(s["items"]),  # type: ignore[arg-type]
+            item_details=tuple(s["item_details"]),  # type: ignore[arg-type]
         )
         for s in sorted_scouts
     ]
@@ -193,14 +213,30 @@ def _wrap_text(
     return lines
 
 
-def _draw_label(c: canvas.Canvas, x: float, y: float, scout: ScoutRecord, spec: LabelSpec) -> None:
+def _format_items(scout: ScoutRecord, template: LabelTemplate) -> str:
+    """Format the items line according to the template."""
+    if scout.item_details and (template.show_sku or template.show_date_earned):
+        return ", ".join(
+            template.format_item(d.name, d.sku, d.date_earned) for d in scout.item_details
+        )
+    return ", ".join(scout.items)
+
+
+def _draw_label(
+    c: canvas.Canvas,
+    x: float,
+    y: float,
+    scout: ScoutRecord,
+    spec: LabelSpec,
+    template: LabelTemplate | None = None,
+) -> None:
     """Draw a single scout label at position (x, y) = top-left of label."""
+    tmpl = template or DEFAULT_LABEL_TEMPLATE
     name_size, awards_size = _font_sizes(spec)
     text_x = x + PAD_LEFT
     usable_width = spec.label_width - PAD_LEFT - PAD_RIGHT
 
-    den_display = scout.den_type.title()
-    name_line = f"{scout.first} {scout.last} [{den_display} ({scout.den_num})]"
+    name_line = tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
 
     c.setFont("Helvetica-Bold", name_size)
     # Truncate name if it overflows the label width
@@ -212,7 +248,7 @@ def _draw_label(c: canvas.Canvas, x: float, y: float, scout: ScoutRecord, spec: 
     name_y = y - PAD_TOP - name_size
     c.drawString(text_x, name_y, name_line)
 
-    awards_text = ", ".join(scout.items)
+    awards_text = _format_items(scout, tmpl)
     c.setFont("Helvetica", awards_size)
     lines = _wrap_text(c, awards_text, usable_width, "Helvetica", awards_size)
 
@@ -232,6 +268,7 @@ def generate_pdf(
     output_path: str,
     *,
     label_spec: LabelSpec | None = None,
+    label_template: LabelTemplate | None = None,
 ) -> GenerationResult:
     """Generate the label PDF and return results.
 
@@ -239,11 +276,13 @@ def generate_pdf(
         scouts: List of scout records to generate labels for.
         output_path: Path for the output PDF file.
         label_spec: Label layout specification. Defaults to Avery 6427.
+        label_template: Controls what content appears on labels. Defaults to standard.
 
     Raises:
         OSError: If the output file cannot be written.
     """
     spec = label_spec or DEFAULT_LABEL_SPEC
+    tmpl = label_template or DEFAULT_LABEL_TEMPLATE
 
     resolved = Path(output_path).resolve()
     if resolved.suffix.lower() != ".pdf":
@@ -262,7 +301,7 @@ def generate_pdf(
             c.showPage()
 
         x, y = _label_origin(page_index, spec)
-        _draw_label(c, x, y, scout, spec)
+        _draw_label(c, x, y, scout, spec, tmpl)
 
     c.save()
     page_count = (len(scouts) + spec.labels_per_page - 1) // spec.labels_per_page if scouts else 0

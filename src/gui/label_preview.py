@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.core.label_generator import ScoutRecord
-from src.core.label_spec import LabelSpec
+from src.core.label_spec import DEFAULT_LABEL_TEMPLATE, LabelSpec, LabelTemplate
 
 # US Letter in points (same as reportlab)
 _PAGE_W = 612.0  # 8.5 * 72
@@ -49,11 +49,13 @@ class LabelPreviewWidget(QWidget):
         self,
         scouts: list[ScoutRecord],
         spec: LabelSpec,
+        template: LabelTemplate | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._scouts = scouts[: spec.labels_per_page]  # first page only
         self._spec = spec
+        self._template = template or DEFAULT_LABEL_TEMPLATE
         # Set a fixed aspect ratio matching US Letter
         self.setMinimumSize(400, 518)  # ~400 wide, letter ratio
 
@@ -119,8 +121,8 @@ class LabelPreviewWidget(QWidget):
         label_bottom = y + spec.label_height - _PAD_BOTTOM
 
         # Scout name
-        den_display = scout.den_type.title()
-        name_line = f"{scout.first} {scout.last} [{den_display} ({scout.den_num})]"
+        tmpl = self._template
+        name_line = tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
 
         name_font = QFont("Helvetica", int(name_size))
         name_font.setBold(True)
@@ -135,7 +137,12 @@ class LabelPreviewWidget(QWidget):
         p.drawText(QRectF(text_x, y + _PAD_TOP, usable_w, fm.height()), 0, name_line)
 
         # Awards
-        awards_text = ", ".join(scout.items)
+        if scout.item_details and (tmpl.show_sku or tmpl.show_date_earned):
+            awards_text = ", ".join(
+                tmpl.format_item(d.name, d.sku, d.date_earned) for d in scout.item_details
+            )
+        else:
+            awards_text = ", ".join(scout.items)
         awards_font = QFont("Helvetica", int(awards_size))
         p.setFont(awards_font)
         afm = QFontMetricsF(awards_font)
@@ -169,10 +176,11 @@ class LabelPreviewDialog(QDialog):
         self,
         scouts: list[ScoutRecord],
         spec: LabelSpec,
+        template: LabelTemplate | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle(f"Label Preview — {spec.name}")
+        self.setWindowTitle(f"Label Preview \u2014 {spec.name}")
         self.setMinimumSize(480, 660)
         self.resize(520, 700)
 
@@ -184,7 +192,7 @@ class LabelPreviewDialog(QDialog):
         pages = (total + per_page - 1) // per_page if total else 0
         showing = min(total, per_page)
         info = QLabel(
-            f"{spec.name} — {total} label{'s' if total != 1 else ''}, "
+            f"{spec.name} \u2014 {total} label{'s' if total != 1 else ''}, "
             f"{pages} page{'s' if pages != 1 else ''} "
             f"(showing first {showing})"
         )
@@ -192,7 +200,7 @@ class LabelPreviewDialog(QDialog):
         layout.addWidget(info)
 
         # Preview widget
-        preview = LabelPreviewWidget(scouts, spec)
+        preview = LabelPreviewWidget(scouts, spec, template)
         layout.addWidget(preview, stretch=1)
 
         # Close button

@@ -7,7 +7,9 @@ from src.core.label_spec import (
     AVERY_5163,
     AVERY_6427,
     DEFAULT_LABEL_SPEC,
+    DEFAULT_LABEL_TEMPLATE,
     LABEL_CATALOG,
+    LabelTemplate,
     get_label_spec,
 )
 
@@ -57,3 +59,45 @@ class TestGetLabelSpec:
 
     def test_returns_none_for_unknown(self) -> None:
         assert get_label_spec("Unknown Label") is None
+
+
+class TestLabelTemplate:
+    def test_default_format_name(self) -> None:
+        tmpl = DEFAULT_LABEL_TEMPLATE
+        result = tmpl.format_name("Liam", "Carter", "lions", "2")
+        assert result == "Liam Carter [Lions (2)]"
+
+    def test_last_first_name_order(self) -> None:
+        tmpl = LabelTemplate(name_order="last_first")
+        result = tmpl.format_name("Liam", "Carter", "lions", "2")
+        assert result == "Carter, Liam [Lions (2)]"
+
+    def test_hide_den_number(self) -> None:
+        tmpl = LabelTemplate(show_den_number=False)
+        result = tmpl.format_name("Liam", "Carter", "lions", "2")
+        assert result == "Liam Carter [Lions]"
+
+    def test_format_item_default(self) -> None:
+        tmpl = DEFAULT_LABEL_TEMPLATE
+        result = tmpl.format_item("Fun on the Run Adventure", "646404", "2025-11-15")
+        assert result == "Fun on the Run Adventure"
+
+    def test_format_item_with_sku(self) -> None:
+        tmpl = LabelTemplate(show_sku=True)
+        result = tmpl.format_item("Fun on the Run Adventure", "646404", "2025-11-15")
+        assert result == "Fun on the Run Adventure [646404]"
+
+    def test_format_item_with_date(self) -> None:
+        tmpl = LabelTemplate(show_date_earned=True)
+        result = tmpl.format_item("Fun on the Run Adventure", "646404", "2025-11-15")
+        assert result == "Fun on the Run Adventure (2025-11-15)"
+
+    def test_format_item_with_all(self) -> None:
+        tmpl = LabelTemplate(show_sku=True, show_date_earned=True)
+        result = tmpl.format_item("Fun on the Run Adventure", "646404", "2025-11-15")
+        assert result == "Fun on the Run Adventure [646404] (2025-11-15)"
+
+    def test_format_item_empty_sku_skipped(self) -> None:
+        tmpl = LabelTemplate(show_sku=True)
+        result = tmpl.format_item("Fun on the Run Adventure", "", "2025-11-15")
+        assert result == "Fun on the Run Adventure"
