@@ -33,6 +33,15 @@ pyinstaller "$ROOT/packaging/scout_labels.spec" \
 
 echo ""
 echo "=== Build complete ==="
-echo "App: $ROOT/dist/Scout Advancement Labels.app"
-echo ""
-echo "To test: open '$ROOT/dist/Scout Advancement Labels.app'"
+
+# Platform-specific output message
+case "$(uname -s)" in
+    Darwin)
+        echo "App: $ROOT/dist/Scout Advancement Labels.app"
+        echo ""
+        echo "To test: open '$ROOT/dist/Scout Advancement Labels.app'"
+        ;;
+    *)
+        echo "App: $ROOT/dist/Scout Advancement Labels/"
+        ;;
+esac
