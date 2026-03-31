@@ -8,5 +8,6 @@ __pycache__/
 .claude/
 build/
 dist/
+*.egg-info/
 *.spec.bak
 sample_data/

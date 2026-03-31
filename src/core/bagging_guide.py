@@ -69,7 +69,10 @@ def _download_image(url: str) -> Path | None:
     """Download an image to the cache directory. Returns the local path or None."""
     cache = _cache_dir()
     url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
-    suffix = Path(url).suffix or ".jpg"
+    allowed = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    suffix = Path(url).suffix.lower()
+    if suffix not in allowed:
+        suffix = ".jpg"
     local_path = cache / f"{url_hash}{suffix}"
 
     if local_path.exists():
@@ -177,7 +180,7 @@ def _draw_item_row(
     return row_top - ROW_HEIGHT
 
 
-def _space_needed_for_scout(scout: ScoutRecord) -> float:
+def _space_needed_for_scout(_scout: ScoutRecord) -> float:
     """Minimum space needed: header + at least 1 item row."""
     return HEADER_HEIGHT + ROW_HEIGHT
 
