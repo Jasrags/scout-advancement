@@ -18,10 +18,27 @@ with open(_version_file) as _f:
     _match = re.search(r'__version__\s*=\s*"([^"]+)"', _f.read())
     VERSION = _match.group(1) if _match else "0.0.0"
 
+# On Windows, bundle the VC++ runtime DLLs so the .exe works on machines
+# without Visual C++ Redistributable installed.
+_win_binaries = []
+if IS_WINDOWS:
+    import sysconfig
+    import glob
+
+    _dll_dirs = [
+        sysconfig.get_config_var("installed_base"),
+        os.path.join(sysconfig.get_config_var("installed_base"), "DLLs"),
+        os.path.dirname(sys.executable),
+    ]
+    for _dll_name in ["vcruntime140.dll", "vcruntime140_1.dll", "python3*.dll"]:
+        for _dll_dir in _dll_dirs:
+            for _match_path in glob.glob(os.path.join(_dll_dir, _dll_name)):
+                _win_binaries.append((_match_path, "."))
+
 a = Analysis(
     [os.path.join(ROOT, "src", "main.py")],
     pathex=[ROOT],
-    binaries=[],
+    binaries=_win_binaries,
     datas=[],
     hiddenimports=[
         "reportlab.graphics.barcode.common",
