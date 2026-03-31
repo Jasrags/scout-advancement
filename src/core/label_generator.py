@@ -239,12 +239,15 @@ def _draw_label(
     name_line = tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
 
     c.setFont("Helvetica-Bold", name_size)
-    # Truncate name if it overflows the label width
-    while (
-        c.stringWidth(name_line, "Helvetica-Bold", name_size) > usable_width
-        and len(name_line) > 10
-    ):
-        name_line = name_line[:-4] + "..."
+    # Truncate name with ellipsis if it overflows the label width
+    if c.stringWidth(name_line, "Helvetica-Bold", name_size) > usable_width:
+        base = name_line
+        while (
+            c.stringWidth(base + "...", "Helvetica-Bold", name_size) > usable_width
+            and len(base) > 5
+        ):
+            base = base[:-1]
+        name_line = base + "..."
     name_y = y - PAD_TOP - name_size
     c.drawString(text_x, name_y, name_line)
 

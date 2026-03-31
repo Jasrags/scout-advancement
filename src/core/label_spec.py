@@ -8,6 +8,7 @@ for any supported label type.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from reportlab.lib.units import inch
 
@@ -140,7 +141,7 @@ DEFAULT_LABEL_SPEC = AVERY_6427
 class LabelTemplate:
     """Controls what content appears on each label."""
 
-    name_order: str = "first_last"  # "first_last" or "last_first"
+    name_order: Literal["first_last", "last_first"] = "first_last"
     show_den_number: bool = True
     show_date_earned: bool = False
     show_sku: bool = False

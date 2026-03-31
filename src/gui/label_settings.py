@@ -89,8 +89,10 @@ class LabelSettingsDialog(QDialog):
 
 def load_template_from_settings(settings: QSettings) -> LabelTemplate:
     """Load a LabelTemplate from QSettings."""
+    raw_order = str(settings.value("template/name_order", "first_last"))
+    name_order = raw_order if raw_order in ("first_last", "last_first") else "first_last"
     return LabelTemplate(
-        name_order=str(settings.value("template/name_order", "first_last")),
+        name_order=name_order,  # type: ignore[arg-type]
         show_den_number=bool(settings.value("template/show_den_number", True, type=bool)),
         show_date_earned=bool(settings.value("template/show_date_earned", False, type=bool)),
         show_sku=bool(settings.value("template/show_sku", False, type=bool)),
