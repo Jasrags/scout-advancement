@@ -2,9 +2,14 @@
 
 A desktop app that turns Scoutbook advancement CSVs into printable Avery 6427 shipping labels (2" x 4", 10 per sheet) and bagging guides with adventure loop/pin images, grouped and sorted by den.
 
-## Quick Start (macOS App)
+## Quick Start
 
-Download the latest `.app` from [GitHub Releases](../../releases), unzip, and drag to Applications. Open the app, drop your CSV files, and click **Generate Labels PDF** or **Generate Bagging Guide**.
+Download the latest release from [GitHub Releases](../../releases):
+
+- **macOS** — download the `-macos.zip`, unzip, and drag to Applications
+- **Windows** — download the `-windows.zip`, unzip, and run `Scout Advancement Labels.exe`
+
+Open the app, drop your CSV files, and click **Generate Labels PDF** or **Generate Bagging Guide**.
 
 ## Development Setup
 
@@ -21,7 +26,7 @@ make run        # launch the GUI
 make test       # run tests with 80% coverage gate
 make lint       # ruff check + format check + mypy
 make format     # auto-format code
-make build      # build macOS .app (output: dist/Scout Advancement Labels.app)
+make build      # build app (macOS .app / Windows .exe)
 make release    # trigger GitHub release workflow
 make clean      # remove build artifacts and caches
 make help       # list all targets
@@ -38,12 +43,12 @@ python generate_labels_pdf.py <input1.csv> [input2.csv ...] [-o output.pdf]
 GitHub Actions runs on every push and PR to `main`:
 
 - **Lint & Type Check** — ruff + mypy
-- **Test & Coverage** — pytest with 80% coverage gate on `src/core`
+- **Test & Coverage** — pytest with 80% coverage gate on `src/core` (ubuntu + windows matrix)
 
 On merge to `main`, if conventional commits indicate a version bump (`feat:` → minor, `fix:` → patch), the release workflow automatically:
 1. Bumps `src/version.py` and creates a git tag
-2. Builds the macOS `.app` on a GitHub-hosted runner
-3. Creates a GitHub Release with the `.app` zip and changelog
+2. Builds the macOS `.app` and Windows `.exe` on platform-specific runners
+3. Creates a GitHub Release with both platform zips and changelog
 
 Versioning is managed by [python-semantic-release](https://python-semantic-release.readthedocs.io/). The release workflow is manual — trigger it from the Actions tab or via `gh workflow run release.yml`.
 

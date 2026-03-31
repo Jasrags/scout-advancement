@@ -48,11 +48,28 @@ jobs:
             echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           fi
 
-  build-macos:
-    name: Build macOS App
+  build:
+    name: Build (${{ matrix.os }})
     needs: release
     if: needs.release.outputs.released == 'true'
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact-name: macos-app
+            build-cmd: bash scripts/build.sh
+            package-cmd: |
+              cd dist
+              zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos.zip" "Scout Advancement Labels.app"
+            artifact-pattern: dist/Scout-Advancement-Labels-*-macos.zip
+          - os: windows-latest
+            artifact-name: windows-exe
+            build-cmd: pwsh scripts/build.ps1
+            package-cmd: |
+              Compress-Archive -Path "dist\Scout Advancement Labels" -DestinationPath "dist\Scout-Advancement-Labels-${{ needs.release.outputs.version }}-windows.zip"
+            artifact-pattern: dist/Scout-Advancement-Labels-*-windows.zip
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -67,24 +84,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Build .app with PyInstaller
-        run: |
-          bash scripts/build.sh
+      - name: Build with PyInstaller
+        run: ${{ matrix.build-cmd }}
 
-      - name: Zip .app bundle
-        run: |
-          cd dist
-          zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos.zip" "Scout Advancement Labels.app"
+      - name: Package artifact
+        run: ${{ matrix.package-cmd }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: macos-app
-          path: dist/Scout-Advancement-Labels-*.zip
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-pattern }}
 
   publish-release:
     name: Publish GitHub Release
-    needs: [release, build-macos]
+    needs: [release, build]
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -96,6 +110,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: macos-app
+          path: dist/
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-exe
           path: dist/
 
       - name: Generate changelog

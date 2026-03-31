@@ -1,14 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for Scout Advancement Labels."""
+"""PyInstaller spec for Scout Advancement Labels (macOS + Windows)."""
 
 import os
 import re
+import sys
 
 block_cipher = None
 
 # Paths
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(SPEC)))
-ICON = os.path.join(ROOT, "packaging", "icon.icns")
+IS_WINDOWS = sys.platform == "win32"
+ICON = os.path.join(ROOT, "packaging", "icon.ico" if IS_WINDOWS else "icon.icns")
 
 # Read version from src/version.py
 _version_file = os.path.join(ROOT, "src", "version.py")
@@ -99,21 +101,23 @@ coll = COLLECT(
     name="Scout Advancement Labels",
 )
 
-app = BUNDLE(
-    coll,
-    name="Scout Advancement Labels.app",
-    icon=ICON,
-    bundle_identifier="com.scoutadvancement.labels",
-    info_plist={
-        "CFBundleShortVersionString": VERSION,
-        "CFBundleVersion": VERSION,
-        "NSHighResolutionCapable": True,
-        "CFBundleDocumentTypes": [
-            {
-                "CFBundleTypeName": "CSV Document",
-                "CFBundleTypeExtensions": ["csv"],
-                "CFBundleTypeRole": "Viewer",
-            }
-        ],
-    },
-)
+# macOS-only: create .app bundle
+if not IS_WINDOWS:
+    app = BUNDLE(
+        coll,
+        name="Scout Advancement Labels.app",
+        icon=ICON,
+        bundle_identifier="com.scoutadvancement.labels",
+        info_plist={
+            "CFBundleShortVersionString": VERSION,
+            "CFBundleVersion": VERSION,
+            "NSHighResolutionCapable": True,
+            "CFBundleDocumentTypes": [
+                {
+                    "CFBundleTypeName": "CSV Document",
+                    "CFBundleTypeExtensions": ["csv"],
+                    "CFBundleTypeRole": "Viewer",
+                }
+            ],
+        },
+    )
