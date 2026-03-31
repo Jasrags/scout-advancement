@@ -10,13 +10,18 @@ Desktop app (PySide6) that generates printable Avery 6427 labels from Scoutbook 
 
 ## Development Commands
 
+A `Makefile` provides all common tasks:
+
 ```bash
-source .venv/bin/activate
-ruff check src/ tests/          # lint
-ruff format src/ tests/         # auto-format
-mypy src/                       # type-check
-python -m pytest --cov=src/core --cov-report=term-missing  # test
-bash scripts/build.sh           # build macOS .app
+make install    # create venv and install deps
+make run        # launch the GUI
+make test       # pytest with coverage (80% gate)
+make lint       # ruff check + format check + mypy
+make format     # auto-format with ruff
+make build      # PyInstaller macOS .app
+make release    # trigger GitHub release workflow
+make clean      # remove build artifacts and caches
+make help       # list all targets
 ```
 
 ## Versioning
