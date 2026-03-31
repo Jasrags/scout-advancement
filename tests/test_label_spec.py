@@ -1,5 +1,6 @@
 """Tests for src.core.label_spec."""
 
+import pytest
 from reportlab.lib.units import inch
 
 from src.core.label_spec import (
@@ -9,6 +10,7 @@ from src.core.label_spec import (
     DEFAULT_LABEL_SPEC,
     DEFAULT_LABEL_TEMPLATE,
     LABEL_CATALOG,
+    LabelSpec,
     LabelTemplate,
     get_label_spec,
 )
@@ -28,6 +30,24 @@ class TestLabelSpec:
 
     def test_default_is_6427(self) -> None:
         assert DEFAULT_LABEL_SPEC is AVERY_6427
+
+
+class TestLabelSpecValidation:
+    def test_rejects_zero_width(self) -> None:
+        with pytest.raises(ValueError, match="dimensions must be positive"):
+            LabelSpec("Bad", "Bad", 0, 72, 1, 1, 36, 36, 0, 0)
+
+    def test_rejects_negative_height(self) -> None:
+        with pytest.raises(ValueError, match="dimensions must be positive"):
+            LabelSpec("Bad", "Bad", 72, -1, 1, 1, 36, 36, 0, 0)
+
+    def test_rejects_zero_columns(self) -> None:
+        with pytest.raises(ValueError, match="at least 1 column"):
+            LabelSpec("Bad", "Bad", 72, 72, 0, 1, 36, 36, 0, 0)
+
+    def test_rejects_zero_rows(self) -> None:
+        with pytest.raises(ValueError, match="at least 1 column"):
+            LabelSpec("Bad", "Bad", 72, 72, 1, 0, 36, 36, 0, 0)
 
 
 class TestLabelCatalog:

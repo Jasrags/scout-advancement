@@ -180,7 +180,7 @@ def _draw_item_row(
     return row_top - ROW_HEIGHT
 
 
-def _space_needed_for_scout(scout: ScoutRecord) -> float:
+def _space_needed_for_scout(_scout: ScoutRecord) -> float:
     """Minimum space needed: header + at least 1 item row."""
     return HEADER_HEIGHT + ROW_HEIGHT
 

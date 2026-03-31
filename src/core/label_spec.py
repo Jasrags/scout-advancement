@@ -36,6 +36,12 @@ class LabelSpec:
     h_gap: float  # horizontal gap between columns
     v_gap: float  # vertical gap between rows
 
+    def __post_init__(self) -> None:
+        if self.label_width <= 0 or self.label_height <= 0:
+            raise ValueError("Label dimensions must be positive")
+        if self.columns < 1 or self.rows < 1:
+            raise ValueError("Grid must have at least 1 column and 1 row")
+
     @property
     def labels_per_page(self) -> int:
         return self.columns * self.rows
@@ -59,6 +65,7 @@ AVERY_6427 = LabelSpec(
     v_gap=0.0,
 )
 
+# 5163 uses the same sheet geometry as 6427 (both are 2"x4", 10/sheet)
 AVERY_5163 = LabelSpec(
     name="Avery 5163",
     description='2" x 4" Shipping Labels (10/sheet)',
@@ -111,6 +118,7 @@ AVERY_5162 = LabelSpec(
     v_gap=0.0,
 )
 
+# 8163 uses the same sheet geometry as 6427 (inkjet vs laser variant)
 AVERY_8163 = LabelSpec(
     name="Avery 8163",
     description='2" x 4" Shipping Labels (10/sheet)',

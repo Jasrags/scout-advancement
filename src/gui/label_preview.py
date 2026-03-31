@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.core.label_generator import ScoutRecord
+from src.core.label_generator import ScoutRecord, format_label_items, format_label_name
 from src.core.label_spec import DEFAULT_LABEL_TEMPLATE, LabelSpec, LabelTemplate
 
 # US Letter in points (same as reportlab)
@@ -57,7 +57,7 @@ class LabelPreviewWidget(QWidget):
         self._spec = spec
         self._template = template or DEFAULT_LABEL_TEMPLATE
         # Set a fixed aspect ratio matching US Letter
-        self.setMinimumSize(400, 518)  # ~400 wide, letter ratio
+        self.setMinimumSize(400, int(400 * _PAGE_H / _PAGE_W))
 
     def paintEvent(self, _event: object) -> None:  # type: ignore[override]
         painter = QPainter(self)
@@ -120,9 +120,9 @@ class LabelPreviewWidget(QWidget):
         usable_w = spec.label_width - _PAD_LEFT - _PAD_RIGHT
         label_bottom = y + spec.label_height - _PAD_BOTTOM
 
-        # Scout name
+        # Scout name — use shared formatting from label_generator
         tmpl = self._template
-        name_line = tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
+        name_line = format_label_name(scout, tmpl)
 
         name_font = QFont("Helvetica", int(name_size))
         name_font.setBold(True)
@@ -130,25 +130,19 @@ class LabelPreviewWidget(QWidget):
         p.setPen(QPen(QColor(0, 0, 0)))
 
         fm = QFontMetricsF(name_font)
-        # Truncate if needed
         name_line = fm.elidedText(name_line, Qt.TextElideMode.ElideRight, usable_w)
 
-        text_y = y + _PAD_TOP + fm.ascent()
-        p.drawText(QRectF(text_x, y + _PAD_TOP, usable_w, fm.height()), 0, name_line)
+        name_y = y + _PAD_TOP
+        p.drawText(QRectF(text_x, name_y, usable_w, fm.height()), 0, name_line)
 
-        # Awards
-        if scout.item_details and (tmpl.show_sku or tmpl.show_date_earned):
-            awards_text = ", ".join(
-                tmpl.format_item(d.name, d.sku, d.date_earned) for d in scout.item_details
-            )
-        else:
-            awards_text = ", ".join(scout.items)
+        # Awards — use shared formatting from label_generator
+        awards_text = format_label_items(scout, tmpl)
         awards_font = QFont("Helvetica", int(awards_size))
         p.setFont(awards_font)
         afm = QFontMetricsF(awards_font)
 
         line_h = afm.height()
-        current_y = text_y + fm.descent() + 2
+        current_y = name_y + fm.height() + 2
 
         # Word-wrap awards
         words = awards_text.split()

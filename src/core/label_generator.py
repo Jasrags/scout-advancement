@@ -213,11 +213,18 @@ def _wrap_text(
     return lines
 
 
-def _format_items(scout: ScoutRecord, template: LabelTemplate) -> str:
-    """Format the items line according to the template."""
-    if scout.item_details and (template.show_sku or template.show_date_earned):
+def format_label_name(scout: ScoutRecord, template: LabelTemplate | None = None) -> str:
+    """Format the scout name line for a label."""
+    tmpl = template or DEFAULT_LABEL_TEMPLATE
+    return tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
+
+
+def format_label_items(scout: ScoutRecord, template: LabelTemplate | None = None) -> str:
+    """Format the items/awards line for a label."""
+    tmpl = template or DEFAULT_LABEL_TEMPLATE
+    if scout.item_details and (tmpl.show_sku or tmpl.show_date_earned):
         return ", ".join(
-            template.format_item(d.name, d.sku, d.date_earned) for d in scout.item_details
+            tmpl.format_item(d.name, d.sku, d.date_earned) for d in scout.item_details
         )
     return ", ".join(scout.items)
 
@@ -236,7 +243,7 @@ def _draw_label(
     text_x = x + PAD_LEFT
     usable_width = spec.label_width - PAD_LEFT - PAD_RIGHT
 
-    name_line = tmpl.format_name(scout.first, scout.last, scout.den_type, scout.den_num)
+    name_line = format_label_name(scout, tmpl)
 
     c.setFont("Helvetica-Bold", name_size)
     # Truncate name with ellipsis if it overflows the label width
@@ -251,7 +258,7 @@ def _draw_label(
     name_y = y - PAD_TOP - name_size
     c.drawString(text_x, name_y, name_line)
 
-    awards_text = _format_items(scout, tmpl)
+    awards_text = format_label_items(scout, tmpl)
     c.setFont("Helvetica", awards_size)
     lines = _wrap_text(c, awards_text, usable_width, "Helvetica", awards_size)
 
