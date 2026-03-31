@@ -29,6 +29,7 @@ from src.core.label_generator import (
 )
 from src.core.label_spec import DEFAULT_LABEL_SPEC, LABEL_CATALOG, LabelSpec, get_label_spec
 from src.gui.file_list_widget import FileListWidget
+from src.gui.label_preview import LabelPreviewDialog
 from src.version import __version__
 
 
@@ -88,6 +89,12 @@ class MainWindow(QMainWindow):
         # Action buttons
         btn_layout = QHBoxLayout()
 
+        self._preview_btn = QPushButton("Preview")
+        self._preview_btn.setEnabled(False)
+        self._preview_btn.setMinimumHeight(36)
+        self._preview_btn.clicked.connect(self._on_preview)
+        btn_layout.addWidget(self._preview_btn)
+
         self._generate_btn = QPushButton("Generate Labels PDF")
         self._generate_btn.setEnabled(False)
         self._generate_btn.setMinimumHeight(36)
@@ -110,6 +117,7 @@ class MainWindow(QMainWindow):
 
     def _on_files_changed(self, valid_count: int) -> None:
         has_files = valid_count > 0
+        self._preview_btn.setEnabled(has_files)
         self._generate_btn.setEnabled(has_files)
         self._bagging_btn.setEnabled(has_files)
 
@@ -120,6 +128,20 @@ class MainWindow(QMainWindow):
     def _selected_label_spec(self) -> LabelSpec:
         name = self._label_combo.currentData()
         return get_label_spec(name) or DEFAULT_LABEL_SPEC
+
+    def _on_preview(self) -> None:
+        file_paths = self._file_list.get_valid_file_paths()
+        if not file_paths:
+            return
+
+        try:
+            scouts = read_advancements(file_paths)
+            spec = self._selected_label_spec()
+            dialog = LabelPreviewDialog(scouts, spec, parent=self)
+            dialog.exec()
+        except (CSVReadError, CSVColumnError) as e:
+            self._status.clear()
+            self._status.append(f"Error: {e}")
 
     def _on_generate(self) -> None:
         file_paths = self._file_list.get_valid_file_paths()
