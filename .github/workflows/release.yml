@@ -77,7 +77,7 @@ jobs:
           zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos.zip" "Scout Advancement Labels.app"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: macos-app
           path: dist/Scout-Advancement-Labels-*.zip
