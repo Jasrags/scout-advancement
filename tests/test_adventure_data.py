@@ -1,5 +1,7 @@
 """Tests for src.core.adventure_data."""
 
+from pathlib import Path
+
 import pytest
 
 from src.core.adventure_data import (
@@ -71,7 +73,7 @@ class TestFindAdventure:
         assert result is not None
         assert result.name == "Fun on the Run"
         assert result.required is True
-        assert "Fun_On_The_Run" in result.image_url
+        assert "fun_on_the_run" in result.image_path
 
     def test_finds_elective_adventure(self) -> None:
         result = find_adventure("Build It Up, Knock It Down Adventure", "lion")
@@ -84,13 +86,13 @@ class TestFindAdventure:
         wolf_bobcat = find_adventure("Bobcat (Wolf) Adventure", "wolves")
         assert lion_bobcat is not None
         assert wolf_bobcat is not None
-        assert lion_bobcat.image_url != wolf_bobcat.image_url
+        assert lion_bobcat.image_path != wolf_bobcat.image_path
 
     def test_shooting_sport_matches(self) -> None:
         result = find_adventure("Archery (Lion) Adventure", "lions")
         assert result is not None
         assert result.name == "Archery"
-        assert "Archery" in result.image_url
+        assert "archery" in result.image_path
 
     def test_unknown_adventure_returns_none(self) -> None:
         result = find_adventure("Nonexistent Adventure", "lion")
@@ -137,11 +139,11 @@ class TestAdventureData:
             assert rank in ADVENTURES
             assert len(ADVENTURES[rank]) > 0
 
-    def test_all_adventures_have_image_urls(self) -> None:
+    def test_all_adventures_have_local_images(self) -> None:
         for rank, adventures in ADVENTURES.items():
             for adv in adventures:
-                assert adv.image_url.startswith("https://"), (
-                    f"{rank}/{adv.name} has invalid image URL"
+                assert Path(adv.image_path).exists(), (
+                    f"{rank}/{adv.name} image missing: {adv.image_path}"
                 )
 
     def test_all_ranks_have_required_adventures(self) -> None:

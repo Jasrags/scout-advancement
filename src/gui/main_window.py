@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
-from PySide6.QtCore import QSettings, QUrl
+from PySide6.QtCore import QSettings, QStandardPaths, QUrl
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -20,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.core.bagging_guide import BaggingGuideResult, generate_bagging_guide
+from src.core.inventory import InventoryStore, aggregate_demand
 from src.core.label_generator import (
     CSVColumnError,
     CSVReadError,
@@ -35,6 +38,12 @@ from src.core.label_spec import (
     get_label_spec,
 )
 from src.gui.file_list_widget import FileListWidget
+from src.gui.inventory_dialogs import (
+    DeductionConfirmDialog,
+    DeductionSummaryDialog,
+    ShoppingListDialog,
+)
+from src.gui.inventory_widget import InventoryWidget
 from src.gui.label_preview import LabelPreviewDialog
 from src.gui.label_settings import LabelSettingsDialog, load_template_from_settings
 from src.version import __version__
@@ -46,11 +55,18 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Scout Advancement Labels")
         self.setMinimumSize(520, 460)
         self._settings = QSettings("ScoutAdvancement", "ScoutLabels")
+        self._inventory: InventoryStore | None = None
         self._setup_menu()
         self._setup_ui()
 
     def _setup_menu(self) -> None:
         menu_bar = self.menuBar()
+
+        # Inventory menu
+        inv_menu = menu_bar.addMenu("Inventory")
+        manage_action = QAction("Manage Inventory...", self)
+        manage_action.triggered.connect(self._on_manage_inventory)
+        inv_menu.addAction(manage_action)
 
         # macOS puts "About" in the app menu automatically
         help_menu = menu_bar.addMenu("Help")
@@ -121,6 +137,33 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(btn_layout)
 
+        # Inventory buttons
+        inv_layout = QHBoxLayout()
+
+        self._manage_inv_btn = QPushButton("Manage Inventory")
+        self._manage_inv_btn.setMinimumHeight(36)
+        self._manage_inv_btn.setToolTip("View and adjust award quantities in stock")
+        self._manage_inv_btn.clicked.connect(self._on_manage_inventory)
+        inv_layout.addWidget(self._manage_inv_btn)
+
+        self._check_inv_btn = QPushButton("Check Inventory")
+        self._check_inv_btn.setEnabled(False)
+        self._check_inv_btn.setMinimumHeight(36)
+        self._check_inv_btn.setToolTip(
+            "Compare loaded PO against current inventory to see what to buy"
+        )
+        self._check_inv_btn.clicked.connect(self._on_check_inventory)
+        inv_layout.addWidget(self._check_inv_btn)
+
+        self._deduct_btn = QPushButton("Deduct from Inventory")
+        self._deduct_btn.setEnabled(False)
+        self._deduct_btn.setMinimumHeight(36)
+        self._deduct_btn.setToolTip("Subtract awarded items from inventory after a ceremony")
+        self._deduct_btn.clicked.connect(self._on_deduct_inventory)
+        inv_layout.addWidget(self._deduct_btn)
+
+        layout.addLayout(inv_layout)
+
         self._status = QTextEdit()
         self._status.setReadOnly(True)
         self._status.setMaximumHeight(120)
@@ -132,6 +175,8 @@ class MainWindow(QMainWindow):
         self._preview_btn.setEnabled(has_files)
         self._generate_btn.setEnabled(has_files)
         self._bagging_btn.setEnabled(has_files)
+        self._check_inv_btn.setEnabled(has_files)
+        self._deduct_btn.setEnabled(has_files)
 
     def _on_label_type_changed(self, _index: int) -> None:
         name = self._label_combo.currentData()
@@ -241,6 +286,95 @@ class MainWindow(QMainWindow):
             self._status.append(f"Error: {e}")
         except OSError as e:
             self._status.append(f"Error writing PDF: {e}")
+
+    # -- Inventory ----------------------------------------------------------
+
+    def _inventory_store(self) -> InventoryStore:
+        """Lazy-initialize the shared inventory store."""
+        if self._inventory is None:
+            data_dir = QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.AppDataLocation
+            )
+            inv_path = Path(data_dir) / "inventory.json"
+            self._inventory = InventoryStore(inv_path)
+            try:
+                self._inventory.load()
+            except ValueError as e:
+                QMessageBox.warning(self, "Inventory", f"Could not load inventory: {e}")
+        return self._inventory
+
+    def _save_inventory(self, store: InventoryStore) -> None:
+        """Persist inventory, logging errors to the status bar."""
+        try:
+            store.save()
+        except OSError as e:
+            self._status.append(f"Warning: could not save inventory: {e}")
+
+    def _on_manage_inventory(self) -> None:
+        store = self._inventory_store()
+        dialog = InventoryWidget(store, parent=self)
+        dialog.exec()
+
+    def _on_check_inventory(self) -> None:
+        file_paths = self._file_list.get_valid_file_paths()
+        if not file_paths:
+            return
+        try:
+            scouts = read_advancements(file_paths)
+        except (CSVReadError, CSVColumnError) as e:
+            self._status.clear()
+            self._status.append(f"Error: {e}")
+            return
+
+        store = self._inventory_store()
+        demand = aggregate_demand(scouts)
+        if not demand:
+            self._status.clear()
+            self._status.append("No matching adventures found in loaded CSV files.")
+            return
+
+        quantities = store.get_all_nonzero()
+        rows = InventoryStore.compute_shopping_list(demand, quantities)
+
+        dialog = ShoppingListDialog(rows, parent=self)
+        dialog.exec()
+
+    def _on_deduct_inventory(self) -> None:
+        file_paths = self._file_list.get_valid_file_paths()
+        if not file_paths:
+            return
+        try:
+            scouts = read_advancements(file_paths)
+        except (CSVReadError, CSVColumnError) as e:
+            self._status.clear()
+            self._status.append(f"Error: {e}")
+            return
+
+        store = self._inventory_store()
+        demand = aggregate_demand(scouts)
+        if not demand:
+            self._status.clear()
+            self._status.append("No matching adventures found in loaded CSV files.")
+            return
+
+        # Build confirmation list: [(rank, name, current_qty, deduct_qty)]
+        confirm_items: list[tuple[str, str, int, int]] = []
+        for (rank, name), qty_needed in demand.items():
+            current = store.get_quantity(rank, name)
+            confirm_items.append((rank, name, current, qty_needed))
+
+        confirm = DeductionConfirmDialog(confirm_items, parent=self)
+        if confirm.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        result = store.bulk_decrement(demand)
+        self._save_inventory(store)
+
+        self._status.clear()
+        self._status.append(f"Deducted {result.total_deducted} units from inventory.")
+
+        summary = DeductionSummaryDialog(result, parent=self)
+        summary.exec()
 
     def _show_about(self) -> None:
         QMessageBox.about(
