@@ -66,7 +66,15 @@ def _cache_dir() -> Path:
 
 
 def _download_image(url: str) -> Path | None:
-    """Download an image to the cache directory. Returns the local path or None."""
+    """Download an image to the cache directory. Returns the local path or None.
+
+    If *url* is a local file path, returns it directly.
+    """
+    # Handle local file paths (bundled images)
+    local = Path(url)
+    if local.is_absolute() and local.exists():
+        return local
+
     cache = _cache_dir()
     url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
     allowed = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
@@ -198,7 +206,7 @@ def generate_bagging_guide(
     Args:
         scouts: List of scout records (from read_advancements).
         output_path: Path for the output PDF.
-        download_images: If True, download adventure images from scouting.org.
+        download_images: If True, load adventure images.
             Set to False for faster generation without images.
 
     Returns:
@@ -241,7 +249,7 @@ def generate_bagging_guide(
             adventure = find_adventure(item_name, scout.den_type)
             image_path = None
             if download_images and adventure is not None:
-                image_path = _download_image(adventure.image_url)
+                image_path = _download_image(adventure.image_path)
 
             y = _draw_item_row(c, y, item_name, adventure, image_path)
 
