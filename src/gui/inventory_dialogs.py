@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -171,13 +170,13 @@ class ShoppingListDialog(QDialog):
             header.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         table.verticalHeader().setVisible(False)
 
-        covered_color = QColor(220, 245, 220)
-        covered_text_color = QColor(100, 100, 100)
+        bold_font = table.font()
+        bold_font.setBold(True)
 
         items_to_buy = 0
         for row_idx, r in enumerate(rows):
-            is_covered = r.buy == 0
-            if not is_covered:
+            has_stock = r.have > 0
+            if r.buy > 0:
                 items_to_buy += 1
             for col, text in enumerate([r.name, str(r.need), str(r.have), str(r.buy)]):
                 cell = QTableWidgetItem(text)
@@ -186,9 +185,8 @@ class ShoppingListDialog(QDialog):
                     cell.setTextAlignment(
                         Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
                     )
-                if is_covered:
-                    cell.setBackground(covered_color)
-                    cell.setForeground(covered_text_color)
+                if has_stock:
+                    cell.setFont(bold_font)
                 table.setItem(row_idx, col, cell)
 
         layout.addWidget(table, stretch=1)
