@@ -9,7 +9,7 @@ description = "Scout advancement label generator — CSV to printable Avery 6427
 requires-python = ">=3.10"
 dependencies = [
     "reportlab>=4.0",
-    "PySide6>=6.6",
+    "PySide6>=6.11.0",
 ]
 
 [project.optional-dependencies]
