@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.core.adventure_data import (
+    get_active_version,
+    get_available_versions,
+    set_active_version,
+)
 from src.core.bagging_guide import BaggingGuideResult, generate_bagging_guide
 from src.core.inventory import InventoryStore, aggregate_demand
 from src.core.label_generator import (
@@ -114,6 +119,24 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(label_layout)
 
+        # Adventure version selector
+        version_layout = QHBoxLayout()
+        version_layout.addWidget(QLabel("Adventure year:"))
+        self._version_combo = QComboBox()
+        for ver in get_available_versions():
+            self._version_combo.addItem(ver.replace("_", "-"), ver)
+        saved_ver = str(self._settings.value("adventure_version", ""))
+        ver_idx = self._version_combo.findData(saved_ver)
+        if ver_idx >= 0:
+            self._version_combo.setCurrentIndex(ver_idx)
+        else:
+            # Default to last (latest) version
+            self._version_combo.setCurrentIndex(self._version_combo.count() - 1)
+        self._version_combo.currentIndexChanged.connect(self._on_version_changed)
+        version_layout.addWidget(self._version_combo, stretch=1)
+        version_layout.addStretch()
+        layout.addLayout(version_layout)
+
         # Action buttons
         btn_layout = QHBoxLayout()
 
@@ -182,6 +205,13 @@ class MainWindow(QMainWindow):
         name = self._label_combo.currentData()
         self._settings.setValue("label_type", name)
 
+    def _on_version_changed(self, _index: int) -> None:
+        version = self._version_combo.currentData()
+        if version:
+            self._settings.setValue("adventure_version", version)
+            set_active_version(version)
+            self._inventory = None  # reset so it reloads with new version
+
     def _on_settings(self) -> None:
         dialog = LabelSettingsDialog(self._settings, parent=self)
         dialog.exec()
@@ -246,8 +276,10 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(result.output_path))
         except (CSVReadError, CSVColumnError) as e:
             self._status.append(f"Error: {e}")
+            QMessageBox.critical(self, "Generate Labels", str(e))
         except OSError as e:
             self._status.append(f"Error writing PDF: {e}")
+            QMessageBox.critical(self, "Generate Labels", f"Could not write PDF: {e}")
 
     def _on_generate_bagging_guide(self) -> None:
         file_paths = self._file_list.get_valid_file_paths()
@@ -271,7 +303,7 @@ class MainWindow(QMainWindow):
 
         self._status.clear()
         self._status.append(f"Processing {len(file_paths)} file(s)...")
-        self._status.append("Downloading adventure images (first run may take a moment)...")
+        self._status.append("Preparing bagging guide...")
 
         try:
             scouts = read_advancements(file_paths)
@@ -284,8 +316,10 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(result.output_path))
         except (CSVReadError, CSVColumnError) as e:
             self._status.append(f"Error: {e}")
+            QMessageBox.critical(self, "Bagging Guide", str(e))
         except OSError as e:
             self._status.append(f"Error writing PDF: {e}")
+            QMessageBox.critical(self, "Bagging Guide", f"Could not write PDF: {e}")
 
     # -- Inventory ----------------------------------------------------------
 
@@ -296,7 +330,7 @@ class MainWindow(QMainWindow):
                 QStandardPaths.StandardLocation.AppDataLocation
             )
             inv_path = Path(data_dir) / "inventory.json"
-            self._inventory = InventoryStore(inv_path)
+            self._inventory = InventoryStore(inv_path, adventure_version=get_active_version())
             try:
                 self._inventory.load()
             except ValueError as e:

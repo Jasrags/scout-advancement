@@ -22,7 +22,7 @@ def store_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def store(store_path: Path) -> InventoryStore:
-    return InventoryStore(store_path)
+    return InventoryStore(store_path, adventure_version="2023_2024")
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ class TestPersistence:
         store.set_quantity("tiger", "Tiger Bites", 3)
         store.save()
 
-        loaded = InventoryStore(store_path)
+        loaded = InventoryStore(store_path, adventure_version="2023_2024")
         loaded.load()
         assert loaded.get_quantity("lion", "Fun on the Run") == 5
         assert loaded.get_quantity("tiger", "Tiger Bites") == 3
@@ -129,20 +129,37 @@ class TestPersistence:
         store.set_quantity("lion", "Fun on the Run", 3)
         store.save()
         data = json.loads(store_path.read_text())
-        assert data["version"] == 1
-        assert data["quantities"]["lion"]["Fun on the Run"] == 3
+        assert data["version"] == 2
+        assert data["quantities"]["2023_2024"]["lion"]["Fun on the Run"] == 3
 
     def test_save_omits_zero_quantities(self, store: InventoryStore, store_path: Path) -> None:
         store.set_quantity("lion", "Fun on the Run", 5)
         store.set_quantity("lion", "Bobcat", 0)
         store.save()
         data = json.loads(store_path.read_text())
-        assert "Bobcat" not in data["quantities"].get("lion", {})
+        ver_data = data["quantities"].get("2023_2024", {})
+        assert "Bobcat" not in ver_data.get("lion", {})
 
     def test_reset(self, store: InventoryStore) -> None:
         store.set_quantity("lion", "Fun on the Run", 5)
         store.reset()
         assert store.get_all_nonzero() == {}
+
+    def test_migrate_v1_to_v2(self, store_path: Path) -> None:
+        v1_data = {
+            "version": 1,
+            "quantities": {"lion": {"Fun on the Run": 5, "Bobcat": 2}},
+        }
+        store_path.write_text(json.dumps(v1_data))
+        store = InventoryStore(store_path, adventure_version="2023_2024")
+        store.load()
+        assert store.get_quantity("lion", "Fun on the Run") == 5
+        assert store.get_quantity("lion", "Bobcat") == 2
+        # Re-save as v2 and verify structure
+        store.save()
+        data = json.loads(store_path.read_text())
+        assert data["version"] == 2
+        assert data["quantities"]["2023_2024"]["lion"]["Fun on the Run"] == 5
 
 
 class TestBulkDecrement:

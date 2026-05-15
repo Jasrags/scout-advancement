@@ -5,6 +5,9 @@ what's in stock before placing a new order. The catalog is driven by
 the adventure database in adventure_data.py — every known adventure is
 always visible in the UI. All inventory actions are user-triggered;
 the core CSV-to-labels flow is never altered.
+
+Quantities are stored per adventure version so switching program years
+does not lose data.
 """
 
 from __future__ import annotations
@@ -14,12 +17,12 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.core.adventure_data import find_adventure, normalize_rank
+from src.core.adventure_data import find_adventure, get_active_version, normalize_rank
 from src.core.label_generator import ScoutRecord
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Canonical rank order for display
 RANKS: list[str] = ["lion", "tiger", "wolf", "bear", "webelos", "arrow of light"]
@@ -90,33 +93,45 @@ def aggregate_demand(
 class InventoryStore:
     """Manages a JSON-backed inventory of award quantities.
 
-    Quantities are stored per (rank, adventure_name). The adventure catalog
-    comes from adventure_data.ADVENTURES — the store only tracks counts.
+    Quantities are stored per adventure version and per (rank, adventure_name).
+    The adventure catalog comes from adventure_data.ADVENTURES.
     """
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, adventure_version: str | None = None) -> None:
         self._path = path
-        # {rank: {adventure_name: quantity}}
-        self._quantities: dict[str, dict[str, int]] = {}
+        self._version = adventure_version or get_active_version()
+        # {version: {rank: {adventure_name: quantity}}}
+        self._all_quantities: dict[str, dict[str, dict[str, int]]] = {}
+
+    @property
+    def adventure_version(self) -> str:
+        return self._version
+
+    def _quantities(self) -> dict[str, dict[str, int]]:
+        """Return the quantities dict for the active version."""
+        if self._version not in self._all_quantities:
+            self._all_quantities[self._version] = {}
+        return self._all_quantities[self._version]
 
     # -- Quantity access ----------------------------------------------------
 
     def get_quantity(self, rank: str, adventure_name: str) -> int:
-        return self._quantities.get(rank, {}).get(adventure_name, 0)
+        return self._quantities().get(rank, {}).get(adventure_name, 0)
 
     def set_quantity(self, rank: str, adventure_name: str, quantity: int) -> None:
-        if rank not in self._quantities:
-            self._quantities[rank] = {}
-        self._quantities[rank][adventure_name] = max(0, quantity)
+        quantities = self._quantities()
+        if rank not in quantities:
+            quantities[rank] = {}
+        quantities[rank][adventure_name] = max(0, quantity)
 
     def get_rank_quantities(self, rank: str) -> dict[str, int]:
         """Return {adventure_name: quantity} for a rank. Only non-zero entries."""
-        return {k: v for k, v in self._quantities.get(rank, {}).items() if v > 0}
+        return {k: v for k, v in self._quantities().get(rank, {}).items() if v > 0}
 
     def get_all_nonzero(self) -> dict[tuple[str, str], int]:
         """Return {(rank, adventure_name): quantity} for all non-zero entries."""
         result: dict[tuple[str, str], int] = {}
-        for rank, adventures in self._quantities.items():
+        for rank, adventures in self._quantities().items():
             for name, qty in adventures.items():
                 if qty > 0:
                     result[(rank, name)] = qty
@@ -170,38 +185,55 @@ class InventoryStore:
     # -- Persistence --------------------------------------------------------
 
     def load(self) -> None:
-        """Load inventory from JSON file. Missing file -> empty store."""
+        """Load inventory from JSON file. Missing file -> empty store.
+
+        Migrates v1 schema (flat quantities) to v2 (versioned quantities).
+        """
         if not self._path.exists():
             return
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             logger.warning("Corrupt inventory file at %s - starting empty", self._path)
-            self._quantities = {}
+            self._all_quantities = {}
             return
 
         version = data.get("version", 0)
-        if version != SCHEMA_VERSION:
+        if version == 1:
+            # Migrate v1 -> v2: wrap flat quantities under the active version
+            old_quantities: dict[str, dict[str, int]] = {}
+            for rank, adventures in data.get("quantities", {}).items():
+                old_quantities[rank] = {name: qty for name, qty in adventures.items() if qty > 0}
+            self._all_quantities = {self._version: old_quantities}
+            logger.info("Migrated inventory from v1 to v2 under version %s", self._version)
+        elif version == 2:
+            self._all_quantities = {}
+            for ver, ranks in data.get("quantities", {}).items():
+                self._all_quantities[ver] = {}
+                for rank, adventures in ranks.items():
+                    self._all_quantities[ver][rank] = {
+                        name: qty for name, qty in adventures.items() if qty > 0
+                    }
+        else:
             raise ValueError(
                 f"Unsupported inventory schema version {version} (expected {SCHEMA_VERSION})"
             )
 
-        self._quantities = {}
-        for rank, adventures in data.get("quantities", {}).items():
-            self._quantities[rank] = {name: qty for name, qty in adventures.items() if qty > 0}
-
     def save(self) -> None:
         """Persist inventory to JSON file."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        # Only persist non-zero quantities
-        quantities_out: dict[str, dict[str, int]] = {}
-        for rank, adventures in self._quantities.items():
-            nonzero = {n: q for n, q in adventures.items() if q > 0}
-            if nonzero:
-                quantities_out[rank] = nonzero
+        quantities_out: dict[str, dict[str, dict[str, int]]] = {}
+        for ver, ranks in self._all_quantities.items():
+            ver_out: dict[str, dict[str, int]] = {}
+            for rank, adventures in ranks.items():
+                nonzero = {n: q for n, q in adventures.items() if q > 0}
+                if nonzero:
+                    ver_out[rank] = nonzero
+            if ver_out:
+                quantities_out[ver] = ver_out
         data = {"version": SCHEMA_VERSION, "quantities": quantities_out}
         self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def reset(self) -> None:
-        """Clear all inventory quantities."""
-        self._quantities = {}
+        """Clear all inventory quantities for the active version."""
+        self._all_quantities[self._version] = {}

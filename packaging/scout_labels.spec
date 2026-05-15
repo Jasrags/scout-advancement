@@ -39,7 +39,9 @@ a = Analysis(
     [os.path.join(ROOT, "src", "main.py")],
     pathex=[ROOT],
     binaries=_win_binaries,
-    datas=[],
+    datas=[
+        (os.path.join(ROOT, "packaging", "images"), os.path.join("packaging", "images")),
+    ],
     hiddenimports=[
         "reportlab.graphics.barcode.common",
         "reportlab.graphics.barcode.code39",

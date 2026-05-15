@@ -3,8 +3,8 @@
 Maps adventure names to local loop/pin images. Used by the bagging guide
 generator and inventory widget to show images alongside each adventure.
 
-Images are bundled in packaging/images/ and were originally sourced from
-https://www.scouting.org/programs/cub-scouts/adventures/
+Images are bundled in packaging/images/<version>/ and were originally sourced
+from https://www.scouting.org/programs/cub-scouts/adventures/
 
 To refresh images when the program year changes, run:
     python scripts/fetch_adventures.py
@@ -13,11 +13,23 @@ To refresh images when the program year changes, run:
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Bundled adventure images directory
-_IMG_DIR = Path(__file__).resolve().parent.parent.parent / "packaging" / "images"
+
+def _resolve_img_root() -> Path:
+    # In a PyInstaller bundle, data files live under sys._MEIPASS.
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass) / "packaging" / "images"
+    return Path(__file__).resolve().parent.parent.parent / "packaging" / "images"
+
+
+_IMG_ROOT = _resolve_img_root()
+
+# Module-level active version state
+_active_version: str = ""
 
 
 @dataclass(frozen=True)
@@ -28,221 +40,228 @@ class Adventure:
 
 
 # ---------------------------------------------------------------------------
-# Adventure data by rank (2023-2024 program year)
+# Adventure definitions (name, image filename, required)
+# These are version-independent — the image path is computed per version.
 # ---------------------------------------------------------------------------
 
-ADVENTURES: dict[str, list[Adventure]] = {
+_ADVENTURE_DEFS: dict[str, list[tuple[str, str, bool]]] = {
     "lion": [
-        # Required (6)
-        Adventure("Fun on the Run", str(_IMG_DIR / "lion_fun_on_the_run.jpg"), True),
-        Adventure("Lion's Roar", str(_IMG_DIR / "lion_lion_s_roar.jpg"), True),
-        Adventure("Lion's Pride", str(_IMG_DIR / "lion_lion_s_pride.jpg"), True),
-        Adventure("King of the Jungle", str(_IMG_DIR / "lion_king_of_the_jungle.jpg"), True),
-        Adventure("Mountain Lion", str(_IMG_DIR / "lion_mountain_lion.jpg"), True),
-        Adventure("Bobcat", str(_IMG_DIR / "lion_bobcat.jpg"), True),
-        # Elective
-        Adventure(
-            "Build It Up, Knock It Down",
-            str(_IMG_DIR / "lion_build_it_up_knock_it_down.jpg"),
-            False,
-        ),
-        Adventure("Champions for Nature", str(_IMG_DIR / "lion_champions_for_nature.jpg"), False),
-        Adventure("Count On Me", str(_IMG_DIR / "lion_count_on_me.jpg"), False),
-        Adventure("Everyday Tech", str(_IMG_DIR / "lion_everyday_tech.jpg"), False),
-        Adventure("Gizmos and Gadgets", str(_IMG_DIR / "lion_gizmos_and_gadgets.jpg"), False),
-        Adventure("Go Fish", str(_IMG_DIR / "lion_go_fish.jpg"), False),
-        Adventure("I'll Do It Myself", str(_IMG_DIR / "lion_i_ll_do_it_myself.jpg"), False),
-        Adventure("Let's Camp", str(_IMG_DIR / "lion_let_s_camp.jpg"), False),
-        Adventure("On a Roll", str(_IMG_DIR / "lion_on_a_roll.jpg"), False),
-        Adventure("On Your Mark", str(_IMG_DIR / "lion_on_your_mark.jpg"), False),
-        Adventure("Pick My Path", str(_IMG_DIR / "lion_pick_my_path.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "lion_race_time.jpg"), False),
-        Adventure("Ready, Set, Grow", str(_IMG_DIR / "lion_ready_set_grow.jpg"), False),
-        Adventure("Time to Swim", str(_IMG_DIR / "lion_time_to_swim.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "lion_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "lion_slingshot.jpg"), False),
+        ("Fun on the Run", "lion_fun_on_the_run.jpg", True),
+        ("Lion's Roar", "lion_lion_s_roar.jpg", True),
+        ("Lion's Pride", "lion_lion_s_pride.jpg", True),
+        ("King of the Jungle", "lion_king_of_the_jungle.jpg", True),
+        ("Mountain Lion", "lion_mountain_lion.jpg", True),
+        ("Bobcat", "lion_bobcat.jpg", True),
+        ("Build It Up, Knock It Down", "lion_build_it_up_knock_it_down.jpg", False),
+        ("Champions for Nature", "lion_champions_for_nature.jpg", False),
+        ("Count On Me", "lion_count_on_me.jpg", False),
+        ("Everyday Tech", "lion_everyday_tech.jpg", False),
+        ("Gizmos and Gadgets", "lion_gizmos_and_gadgets.jpg", False),
+        ("Go Fish", "lion_go_fish.jpg", False),
+        ("I'll Do It Myself", "lion_i_ll_do_it_myself.jpg", False),
+        ("Let's Camp", "lion_let_s_camp.jpg", False),
+        ("On a Roll", "lion_on_a_roll.jpg", False),
+        ("On Your Mark", "lion_on_your_mark.jpg", False),
+        ("Pick My Path", "lion_pick_my_path.jpg", False),
+        ("Race Time", "lion_race_time.jpg", False),
+        ("Ready, Set, Grow", "lion_ready_set_grow.jpg", False),
+        ("Time to Swim", "lion_time_to_swim.jpg", False),
+        ("Archery", "lion_archery.jpg", False),
+        ("Slingshot", "lion_slingshot.jpg", False),
     ],
     "tiger": [
-        # Required (6)
-        Adventure("Tiger Bites", str(_IMG_DIR / "tiger_tiger_bites.jpg"), True),
-        Adventure("Tiger's Roar", str(_IMG_DIR / "tiger_tiger_s_roar.jpg"), True),
-        Adventure("Tiger Circles", str(_IMG_DIR / "tiger_tiger_circles.jpg"), True),
-        Adventure("Team Tiger", str(_IMG_DIR / "tiger_team_tiger.jpg"), True),
-        Adventure("Tigers in the Wild", str(_IMG_DIR / "tiger_tigers_in_the_wild.jpg"), True),
-        Adventure("Bobcat", str(_IMG_DIR / "tiger_bobcat.jpg"), True),
-        # Elective
-        Adventure("Champions for Nature", str(_IMG_DIR / "tiger_champions_for_nature.jpg"), False),
-        Adventure(
+        ("Tiger Bites", "tiger_tiger_bites.jpg", True),
+        ("Tiger's Roar", "tiger_tiger_s_roar.jpg", True),
+        ("Tiger Circles", "tiger_tiger_circles.jpg", True),
+        ("Team Tiger", "tiger_team_tiger.jpg", True),
+        ("Tigers in the Wild", "tiger_tigers_in_the_wild.jpg", True),
+        ("Bobcat", "tiger_bobcat.jpg", True),
+        ("Champions for Nature", "tiger_champions_for_nature.jpg", False),
+        (
             "Curiosity, Intrigue and Magical Mysteries",
-            str(_IMG_DIR / "tiger_curiosity_intrigue_and_magical_mysteries.jpg"),
+            "tiger_curiosity_intrigue_and_magical_mysteries.jpg",
             False,
         ),
-        Adventure("Designed by Tiger", str(_IMG_DIR / "tiger_designed_by_tiger.jpg"), False),
-        Adventure("Fish On", str(_IMG_DIR / "tiger_fish_on.jpg"), False),
-        Adventure("Floats and Boats", str(_IMG_DIR / "tiger_floats_and_boats.jpg"), False),
-        Adventure("Good Knights", str(_IMG_DIR / "tiger_good_knights.jpg"), False),
-        Adventure("Let's Camp", str(_IMG_DIR / "tiger_let_s_camp.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "tiger_race_time.jpg"), False),
-        Adventure("Rolling Tigers", str(_IMG_DIR / "tiger_rolling_tigers.jpg"), False),
-        Adventure("Safe and Smart", str(_IMG_DIR / "tiger_safe_and_smart.jpg"), False),
-        Adventure("Sky is the Limit", str(_IMG_DIR / "tiger_sky_is_the_limit.jpg"), False),
-        Adventure("Stories in Shapes", str(_IMG_DIR / "tiger_stories_in_shapes.jpg"), False),
-        Adventure("Summertime Fun", str(_IMG_DIR / "tiger_summertime_fun.jpg"), False),
-        Adventure("Tech All Around", str(_IMG_DIR / "tiger_tech_all_around.jpg"), False),
-        Adventure("Tiger Tag", str(_IMG_DIR / "tiger_tiger_tag.jpg"), False),
-        Adventure("Tiger-iffic!", str(_IMG_DIR / "tiger_tiger_iffic.jpg"), False),
-        Adventure("Tigers in the Water", str(_IMG_DIR / "tiger_tigers_in_the_water.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "tiger_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "tiger_slingshot.jpg"), False),
-        Adventure("BB", str(_IMG_DIR / "tiger_bb.jpg"), False),
+        ("Designed by Tiger", "tiger_designed_by_tiger.jpg", False),
+        ("Fish On", "tiger_fish_on.jpg", False),
+        ("Floats and Boats", "tiger_floats_and_boats.jpg", False),
+        ("Good Knights", "tiger_good_knights.jpg", False),
+        ("Let's Camp", "tiger_let_s_camp.jpg", False),
+        ("Race Time", "tiger_race_time.jpg", False),
+        ("Rolling Tigers", "tiger_rolling_tigers.jpg", False),
+        ("Safe and Smart", "tiger_safe_and_smart.jpg", False),
+        ("Sky is the Limit", "tiger_sky_is_the_limit.jpg", False),
+        ("Stories in Shapes", "tiger_stories_in_shapes.jpg", False),
+        ("Summertime Fun", "tiger_summertime_fun.jpg", False),
+        ("Tech All Around", "tiger_tech_all_around.jpg", False),
+        ("Tiger Tag", "tiger_tiger_tag.jpg", False),
+        ("Tiger-iffic!", "tiger_tiger_iffic.jpg", False),
+        ("Tigers in the Water", "tiger_tigers_in_the_water.jpg", False),
+        ("Archery", "tiger_archery.jpg", False),
+        ("Slingshot", "tiger_slingshot.jpg", False),
+        ("BB", "tiger_bb.jpg", False),
     ],
     "wolf": [
-        # Required (6)
-        Adventure("Running With the Pack", str(_IMG_DIR / "wolf_running_with_the_pack.jpg"), True),
-        Adventure("Safety in Numbers", str(_IMG_DIR / "wolf_safety_in_numbers.jpg"), True),
-        Adventure("Footsteps", str(_IMG_DIR / "wolf_footsteps.jpg"), True),
-        Adventure("Council Fire", str(_IMG_DIR / "wolf_council_fire.jpg"), True),
-        Adventure("Paws on the Path", str(_IMG_DIR / "wolf_paws_on_the_path.jpg"), True),
-        Adventure("Bobcat", str(_IMG_DIR / "wolf_bobcat.jpg"), True),
-        # Elective
-        Adventure("A Wolf Goes Fishing", str(_IMG_DIR / "wolf_a_wolf_goes_fishing.jpg"), False),
-        Adventure("Adventures in Coins", str(_IMG_DIR / "wolf_adventures_in_coins.jpg"), False),
-        Adventure("Air of the Wolf", str(_IMG_DIR / "wolf_air_of_the_wolf.jpg"), False),
-        Adventure("Champions for Nature", str(_IMG_DIR / "wolf_champions_for_nature.jpg"), False),
-        Adventure("Code of the Wolf", str(_IMG_DIR / "wolf_code_of_the_wolf.jpg"), False),
-        Adventure("Computing Wolves", str(_IMG_DIR / "wolf_computing_wolves.jpg"), False),
-        Adventure("Cubs Who Care", str(_IMG_DIR / "wolf_cubs_who_care.jpg"), False),
-        Adventure("Digging in the Past", str(_IMG_DIR / "wolf_digging_in_the_past.jpg"), False),
-        Adventure("Finding Your Way", str(_IMG_DIR / "wolf_finding_your_way.jpg"), False),
-        Adventure("Germs Alive!", str(_IMG_DIR / "wolf_germs_alive.jpg"), False),
-        Adventure("Let's Camp", str(_IMG_DIR / "wolf_let_s_camp.jpg"), False),
-        Adventure("Paws for Water", str(_IMG_DIR / "wolf_paws_for_water.jpg"), False),
-        Adventure("Paws of Skill", str(_IMG_DIR / "wolf_paws_of_skill.jpg"), False),
-        Adventure("Pedal With the Pack", str(_IMG_DIR / "wolf_pedal_with_the_pack.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "wolf_race_time.jpg"), False),
-        Adventure("Spirit of the Water", str(_IMG_DIR / "wolf_spirit_of_the_water.jpg"), False),
-        Adventure("Summertime Fun", str(_IMG_DIR / "wolf_summertime_fun.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "wolf_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "wolf_slingshot.jpg"), False),
-        Adventure("BB", str(_IMG_DIR / "wolf_bb.jpg"), False),
+        ("Running With the Pack", "wolf_running_with_the_pack.jpg", True),
+        ("Safety in Numbers", "wolf_safety_in_numbers.jpg", True),
+        ("Footsteps", "wolf_footsteps.jpg", True),
+        ("Council Fire", "wolf_council_fire.jpg", True),
+        ("Paws on the Path", "wolf_paws_on_the_path.jpg", True),
+        ("Bobcat", "wolf_bobcat.jpg", True),
+        ("A Wolf Goes Fishing", "wolf_a_wolf_goes_fishing.jpg", False),
+        ("Adventures in Coins", "wolf_adventures_in_coins.jpg", False),
+        ("Air of the Wolf", "wolf_air_of_the_wolf.jpg", False),
+        ("Champions for Nature", "wolf_champions_for_nature.jpg", False),
+        ("Code of the Wolf", "wolf_code_of_the_wolf.jpg", False),
+        ("Computing Wolves", "wolf_computing_wolves.jpg", False),
+        ("Cubs Who Care", "wolf_cubs_who_care.jpg", False),
+        ("Digging in the Past", "wolf_digging_in_the_past.jpg", False),
+        ("Finding Your Way", "wolf_finding_your_way.jpg", False),
+        ("Germs Alive!", "wolf_germs_alive.jpg", False),
+        ("Let's Camp", "wolf_let_s_camp.jpg", False),
+        ("Paws for Water", "wolf_paws_for_water.jpg", False),
+        ("Paws of Skill", "wolf_paws_of_skill.jpg", False),
+        ("Pedal With the Pack", "wolf_pedal_with_the_pack.jpg", False),
+        ("Race Time", "wolf_race_time.jpg", False),
+        ("Spirit of the Water", "wolf_spirit_of_the_water.jpg", False),
+        ("Summertime Fun", "wolf_summertime_fun.jpg", False),
+        ("Archery", "wolf_archery.jpg", False),
+        ("Slingshot", "wolf_slingshot.jpg", False),
+        ("BB", "wolf_bb.jpg", False),
     ],
     "bear": [
-        # Required (6)
-        Adventure("Bear Strong", str(_IMG_DIR / "bear_bear_strong.jpg"), True),
-        Adventure("Standing Tall", str(_IMG_DIR / "bear_standing_tall.jpg"), True),
-        Adventure("Fellowship", str(_IMG_DIR / "bear_fellowship.jpg"), True),
-        Adventure("Paws for Action", str(_IMG_DIR / "bear_paws_for_action.jpg"), True),
-        Adventure("Bear Habitat", str(_IMG_DIR / "bear_bear_habitat.jpg"), True),
-        Adventure("Bobcat", str(_IMG_DIR / "bear_bobcat.jpg"), True),
-        # Elective
-        Adventure("A Bear Goes Fishing", str(_IMG_DIR / "bear_a_bear_goes_fishing.jpg"), False),
-        Adventure("Balancing Bears", str(_IMG_DIR / "bear_balancing_bears.jpg"), False),
-        Adventure("Baloo the Builder", str(_IMG_DIR / "bear_baloo_the_builder.jpg"), False),
-        Adventure("Bears Afloat", str(_IMG_DIR / "bear_bears_afloat.jpg"), False),
-        Adventure("Bears on Bikes", str(_IMG_DIR / "bear_bears_on_bikes.jpg"), False),
-        Adventure("Champions for Nature", str(_IMG_DIR / "bear_champions_for_nature.jpg"), False),
-        Adventure("Chef Tech", str(_IMG_DIR / "bear_chef_tech.jpg"), False),
-        Adventure("Critter Care", str(_IMG_DIR / "bear_critter_care.jpg"), False),
-        Adventure("Forensics", str(_IMG_DIR / "bear_forensics.jpg"), False),
-        Adventure("Let's Camp", str(_IMG_DIR / "bear_let_s_camp.jpg"), False),
-        Adventure("Marble Madness", str(_IMG_DIR / "bear_marble_madness.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "bear_race_time.jpg"), False),
-        Adventure("Roaring Laughter", str(_IMG_DIR / "bear_roaring_laughter.jpg"), False),
-        Adventure("Salmon Run", str(_IMG_DIR / "bear_salmon_run.jpg"), False),
-        Adventure("Summertime Fun", str(_IMG_DIR / "bear_summertime_fun.jpg"), False),
-        Adventure("Super Science", str(_IMG_DIR / "bear_super_science.jpg"), False),
-        Adventure("Whittling", str(_IMG_DIR / "bear_whittling.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "bear_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "bear_slingshot.jpg"), False),
-        Adventure("BB", str(_IMG_DIR / "bear_bb.jpg"), False),
+        ("Bear Strong", "bear_bear_strong.jpg", True),
+        ("Standing Tall", "bear_standing_tall.jpg", True),
+        ("Fellowship", "bear_fellowship.jpg", True),
+        ("Paws for Action", "bear_paws_for_action.jpg", True),
+        ("Bear Habitat", "bear_bear_habitat.jpg", True),
+        ("Bobcat", "bear_bobcat.jpg", True),
+        ("A Bear Goes Fishing", "bear_a_bear_goes_fishing.jpg", False),
+        ("Balancing Bears", "bear_balancing_bears.jpg", False),
+        ("Baloo the Builder", "bear_baloo_the_builder.jpg", False),
+        ("Bears Afloat", "bear_bears_afloat.jpg", False),
+        ("Bears on Bikes", "bear_bears_on_bikes.jpg", False),
+        ("Champions for Nature", "bear_champions_for_nature.jpg", False),
+        ("Chef Tech", "bear_chef_tech.jpg", False),
+        ("Critter Care", "bear_critter_care.jpg", False),
+        ("Forensics", "bear_forensics.jpg", False),
+        ("Let's Camp", "bear_let_s_camp.jpg", False),
+        ("Marble Madness", "bear_marble_madness.jpg", False),
+        ("Race Time", "bear_race_time.jpg", False),
+        ("Roaring Laughter", "bear_roaring_laughter.jpg", False),
+        ("Salmon Run", "bear_salmon_run.jpg", False),
+        ("Summertime Fun", "bear_summertime_fun.jpg", False),
+        ("Super Science", "bear_super_science.jpg", False),
+        ("Whittling", "bear_whittling.jpg", False),
+        ("Archery", "bear_archery.jpg", False),
+        ("Slingshot", "bear_slingshot.jpg", False),
+        ("BB", "bear_bb.jpg", False),
     ],
     "webelos": [
-        # Required (6)
-        Adventure("Bobcat", str(_IMG_DIR / "webelos_bobcat.jpg"), True),
-        Adventure(
-            "Stronger, Faster, Higher",
-            str(_IMG_DIR / "webelos_stronger_faster_higher.jpg"),
-            True,
-        ),
-        Adventure("My Safety", str(_IMG_DIR / "webelos_my_safety.jpg"), True),
-        Adventure("My Family", str(_IMG_DIR / "webelos_my_family.jpg"), True),
-        Adventure("My Community", str(_IMG_DIR / "webelos_my_community.jpg"), True),
-        Adventure("Webelos Walkabout", str(_IMG_DIR / "webelos_webelos_walkabout.jpg"), True),
-        # Elective
-        Adventure("Aquanaut", str(_IMG_DIR / "webelos_aquanaut.jpg"), False),
-        Adventure("Art Explosion", str(_IMG_DIR / "webelos_art_explosion.jpg"), False),
-        Adventure("Aware and Care", str(_IMG_DIR / "webelos_aware_and_care.jpg"), False),
-        Adventure("Build It", str(_IMG_DIR / "webelos_build_it.jpg"), False),
-        Adventure("Catch the Big One", str(_IMG_DIR / "webelos_catch_the_big_one.jpg"), False),
-        Adventure(
-            "Champions for Nature", str(_IMG_DIR / "webelos_champions_for_nature.jpg"), False
-        ),
-        Adventure("Chef's Knife", str(_IMG_DIR / "webelos_chef_s_knife.jpg"), False),
-        Adventure("Earth Rocks", str(_IMG_DIR / "webelos_earth_rocks.jpg"), False),
-        Adventure("Let's Camp", str(_IMG_DIR / "webelos_let_s_camp.jpg"), False),
-        Adventure("Math on the Trail", str(_IMG_DIR / "webelos_math_on_the_trail.jpg"), False),
-        Adventure("Modular Design", str(_IMG_DIR / "webelos_modular_design.jpg"), False),
-        Adventure("Paddle Onward", str(_IMG_DIR / "webelos_paddle_onward.jpg"), False),
-        Adventure("Pedal Away", str(_IMG_DIR / "webelos_pedal_away.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "webelos_race_time.jpg"), False),
-        Adventure("Summertime Fun", str(_IMG_DIR / "webelos_summertime_fun.jpg"), False),
-        Adventure("Tech on the Trail", str(_IMG_DIR / "webelos_tech_on_the_trail.jpg"), False),
-        Adventure("Yo-Yo", str(_IMG_DIR / "webelos_yo_yo.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "webelos_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "webelos_slingshot.jpg"), False),
-        Adventure("BB Gun", str(_IMG_DIR / "webelos_bb_gun.jpg"), False),
+        ("Bobcat", "webelos_bobcat.jpg", True),
+        ("Stronger, Faster, Higher", "webelos_stronger_faster_higher.jpg", True),
+        ("My Safety", "webelos_my_safety.jpg", True),
+        ("My Family", "webelos_my_family.jpg", True),
+        ("My Community", "webelos_my_community.jpg", True),
+        ("Webelos Walkabout", "webelos_webelos_walkabout.jpg", True),
+        ("Aquanaut", "webelos_aquanaut.jpg", False),
+        ("Art Explosion", "webelos_art_explosion.jpg", False),
+        ("Aware and Care", "webelos_aware_and_care.jpg", False),
+        ("Build It", "webelos_build_it.jpg", False),
+        ("Catch the Big One", "webelos_catch_the_big_one.jpg", False),
+        ("Champions for Nature", "webelos_champions_for_nature.jpg", False),
+        ("Chef's Knife", "webelos_chef_s_knife.jpg", False),
+        ("Earth Rocks", "webelos_earth_rocks.jpg", False),
+        ("Let's Camp", "webelos_let_s_camp.jpg", False),
+        ("Math on the Trail", "webelos_math_on_the_trail.jpg", False),
+        ("Modular Design", "webelos_modular_design.jpg", False),
+        ("Paddle Onward", "webelos_paddle_onward.jpg", False),
+        ("Pedal Away", "webelos_pedal_away.jpg", False),
+        ("Race Time", "webelos_race_time.jpg", False),
+        ("Summertime Fun", "webelos_summertime_fun.jpg", False),
+        ("Tech on the Trail", "webelos_tech_on_the_trail.jpg", False),
+        ("Yo-Yo", "webelos_yo_yo.jpg", False),
+        ("Archery", "webelos_archery.jpg", False),
+        ("Slingshot", "webelos_slingshot.jpg", False),
+        ("BB Gun", "webelos_bb_gun.jpg", False),
     ],
     "arrow of light": [
-        # Required (6)
-        Adventure(
-            "Personal Fitness",
-            str(_IMG_DIR / "arrow_of_light_personal_fitness.jpg"),
-            True,
-        ),
-        Adventure("First Aid", str(_IMG_DIR / "arrow_of_light_first_aid.jpg"), True),
-        Adventure("Duty to God", str(_IMG_DIR / "arrow_of_light_duty_to_god.jpg"), True),
-        Adventure("Citizenship", str(_IMG_DIR / "arrow_of_light_citizenship.jpg"), True),
-        Adventure(
-            "Outdoor Adventurer",
-            str(_IMG_DIR / "arrow_of_light_outdoor_adventurer.jpg"),
-            True,
-        ),
-        Adventure("Bobcat", str(_IMG_DIR / "arrow_of_light_bobcat.jpg"), True),
-        # Elective
-        Adventure(
-            "Champions for Nature",
-            str(_IMG_DIR / "arrow_of_light_champions_for_nature.jpg"),
-            False,
-        ),
-        Adventure("Cycling", str(_IMG_DIR / "arrow_of_light_cycling.jpg"), False),
-        Adventure("Engineer", str(_IMG_DIR / "arrow_of_light_engineer.jpg"), False),
-        Adventure("Estimations", str(_IMG_DIR / "arrow_of_light_estimations.jpg"), False),
-        Adventure("Fishing", str(_IMG_DIR / "arrow_of_light_fishing.jpg"), False),
-        Adventure(
-            "High Tech Outdoors",
-            str(_IMG_DIR / "arrow_of_light_high_tech_outdoors.jpg"),
-            False,
-        ),
-        Adventure("Into the Wild", str(_IMG_DIR / "arrow_of_light_into_the_wild.jpg"), False),
-        Adventure("Into the Woods", str(_IMG_DIR / "arrow_of_light_into_the_woods.jpg"), False),
-        Adventure("Knife Safety", str(_IMG_DIR / "arrow_of_light_knife_safety.jpg"), False),
-        Adventure("Paddle Craft", str(_IMG_DIR / "arrow_of_light_paddle_craft.jpg"), False),
-        Adventure("Race Time", str(_IMG_DIR / "arrow_of_light_race_time.jpg"), False),
-        Adventure("Summertime Fun", str(_IMG_DIR / "arrow_of_light_summertime_fun.jpg"), False),
-        Adventure("Swimming", str(_IMG_DIR / "arrow_of_light_swimming.jpg"), False),
-        # Shooting sports
-        Adventure("Archery", str(_IMG_DIR / "arrow_of_light_archery.jpg"), False),
-        Adventure("Slingshot", str(_IMG_DIR / "arrow_of_light_slingshot.jpg"), False),
-        Adventure("BB", str(_IMG_DIR / "arrow_of_light_bb.jpg"), False),
+        ("Personal Fitness", "arrow_of_light_personal_fitness.jpg", True),
+        ("First Aid", "arrow_of_light_first_aid.jpg", True),
+        ("Duty to God", "arrow_of_light_duty_to_god.jpg", True),
+        ("Citizenship", "arrow_of_light_citizenship.jpg", True),
+        ("Outdoor Adventurer", "arrow_of_light_outdoor_adventurer.jpg", True),
+        ("Bobcat", "arrow_of_light_bobcat.jpg", True),
+        ("Champions for Nature", "arrow_of_light_champions_for_nature.jpg", False),
+        ("Cycling", "arrow_of_light_cycling.jpg", False),
+        ("Engineer", "arrow_of_light_engineer.jpg", False),
+        ("Estimations", "arrow_of_light_estimations.jpg", False),
+        ("Fishing", "arrow_of_light_fishing.jpg", False),
+        ("High Tech Outdoors", "arrow_of_light_high_tech_outdoors.jpg", False),
+        ("Into the Wild", "arrow_of_light_into_the_wild.jpg", False),
+        ("Into the Woods", "arrow_of_light_into_the_woods.jpg", False),
+        ("Knife Safety", "arrow_of_light_knife_safety.jpg", False),
+        ("Paddle Craft", "arrow_of_light_paddle_craft.jpg", False),
+        ("Race Time", "arrow_of_light_race_time.jpg", False),
+        ("Summertime Fun", "arrow_of_light_summertime_fun.jpg", False),
+        ("Swimming", "arrow_of_light_swimming.jpg", False),
+        ("Archery", "arrow_of_light_archery.jpg", False),
+        ("Slingshot", "arrow_of_light_slingshot.jpg", False),
+        ("BB", "arrow_of_light_bb.jpg", False),
     ],
 }
 
-# Rank aliases used in Scoutbook CSV exports -> canonical rank keys
+
+# ---------------------------------------------------------------------------
+# Version management
+# ---------------------------------------------------------------------------
+
+
+def get_available_versions() -> list[str]:
+    """Return sorted list of available adventure versions (e.g. ['2023_2024'])."""
+    if not _IMG_ROOT.is_dir():
+        return []
+    return sorted(d.name for d in _IMG_ROOT.iterdir() if d.is_dir() and not d.name.startswith("."))
+
+
+def get_active_version() -> str:
+    """Return the currently active adventure version."""
+    global _active_version  # noqa: PLW0602
+    if not _active_version:
+        versions = get_available_versions()
+        _active_version = versions[-1] if versions else "2023_2024"
+    return _active_version
+
+
+def set_active_version(version: str) -> None:
+    """Switch the active adventure version and rebuild ADVENTURES."""
+    global _active_version, ADVENTURES
+    _active_version = version
+    ADVENTURES = _build_adventures(version)
+
+
+def _build_adventures(version: str) -> dict[str, list[Adventure]]:
+    """Build the ADVENTURES dict with image paths for the given version."""
+    img_dir = _IMG_ROOT / version
+    result: dict[str, list[Adventure]] = {}
+    for rank, defs in _ADVENTURE_DEFS.items():
+        result[rank] = [
+            Adventure(name, str(img_dir / filename), required) for name, filename, required in defs
+        ]
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Module-level ADVENTURES dict (initialized on import)
+# ---------------------------------------------------------------------------
+
+ADVENTURES: dict[str, list[Adventure]] = _build_adventures(get_active_version())
+
+
+# ---------------------------------------------------------------------------
+# Rank aliases and lookup functions
+# ---------------------------------------------------------------------------
+
 RANK_ALIASES: dict[str, str] = {
     "lion": "lion",
     "lions": "lion",
@@ -271,18 +290,10 @@ def _normalize_item_name(item_name: str) -> str:
     """Normalize a CSV Item Name for matching.
 
     Strips the ' Adventure' suffix and any rank qualifier like '(Lion)'.
-    Examples:
-        'Fun on the Run Adventure' -> 'fun on the run'
-        'Archery (Lion) Adventure' -> 'archery'
-        'Bobcat (Wolf) Adventure'  -> 'bobcat'
-        'BB (Bears) Adventure'     -> 'bb'
-        'BB Gun (Webelos) Adventure' -> 'bb gun'
     """
     name = item_name.strip()
-    # Remove trailing ' Adventure'
     if name.lower().endswith(" adventure"):
         name = name[: -len(" adventure")]
-    # Remove rank qualifier: '(Lion)', '(Tigers)', '(Wolf)', '(Bears)', '(Webelos)', etc.
     name = re.sub(r"\s*\([^)]+\)\s*$", "", name)
     return name.strip().lower()
 
@@ -290,7 +301,7 @@ def _normalize_item_name(item_name: str) -> str:
 def find_adventure(item_name: str, den_type: str) -> Adventure | None:
     """Look up the Adventure matching a CSV item name and den type.
 
-    Returns None if no match is found (adventure may not be in our database yet).
+    Returns None if no match is found.
     """
     rank = normalize_rank(den_type)
     if rank is None:

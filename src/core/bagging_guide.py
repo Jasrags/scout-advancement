@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import tempfile
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -217,11 +218,14 @@ def generate_bagging_guide(
     """
     resolved = Path(output_path).resolve()
     if resolved.suffix.lower() != ".pdf":
-        raise OSError(f"Output path must end with .pdf: {resolved.name}")
+        resolved = resolved.with_suffix(".pdf")
     parent = resolved.parent
     if not parent.exists():
         raise OSError(f"Output directory does not exist: {parent}")
     output_path = str(resolved)
+
+    if not scouts:
+        raise OSError("No scouts to generate a bagging guide for (CSV produced 0 records).")
 
     c = canvas.Canvas(output_path, pagesize=LETTER)
     c.setTitle("Cub Scout Bagging Guide")
@@ -253,8 +257,7 @@ def generate_bagging_guide(
 
             y = _draw_item_row(c, y, item_name, adventure, image_path)
 
-    if scouts:
-        c.save()
+    c.save()
 
     return BaggingGuideResult(
         scout_count=len(scouts),
