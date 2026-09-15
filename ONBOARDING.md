@@ -8,7 +8,7 @@ The Scout Advancement Labels app takes the purchase order CSV exported from Scou
 
 - **Printable labels** — stick on bags to identify each scout and their awards
 - **Bagging guide** — a checklist with adventure loop/pin images so volunteers can bag the right items for each scout
-- **Inventory tracking** — track leftover awards so you know what to buy vs what you already have
+- **Inventory tracking** (optional, off by default) — track leftover awards so you know what to buy vs what you already have
 
 ## What You Need
 
@@ -128,16 +128,21 @@ Back in [Scoutbook](https://advancements.scouting.org/roster#advancements):
 
 ## Managing Inventory
 
-The inventory screen lets you track leftover awards between ceremonies.
+The inventory screen lets you track leftover awards between ceremonies. Inventory tracking is **off by default** — it's optional extra bookkeeping, and it requires the app's adventure catalog to stay current with whatever BSA changes each program year, so it's the piece most likely to need attention from whoever maintains this app.
+
+### Turning Inventory Tracking On/Off
+
+Go to the **Inventory** menu and check **Track Award Inventory**. This shows or hides the Manage/Check/Deduct Inventory buttons and menu item. The setting is remembered between app launches. If you don't want to deal with inventory at all, just leave it off — steps 4 (partially), 6, 7, and 10 above become optional/skippable, and everything else (labels, bagging guide) works the same either way.
 
 ### Setting Up Inventory
 
-1. Click **Manage Inventory** (always available, no CSV needed)
-2. Each tab shows a rank (Lion through Arrow of Light)
-3. Adventures are grouped: Required, Elective, Shooting Sports
-4. Each card shows the adventure loop/pin image and name
-5. Use **+/-** buttons to set how many you have of each
-6. Click **Save** when done
+1. Turn on **Track Award Inventory** in the Inventory menu (see above)
+2. Click **Manage Inventory** (always available once enabled, no CSV needed)
+3. Each tab shows a rank (Lion through Arrow of Light)
+4. Adventures are grouped: Required, Elective, Shooting Sports
+5. Each card shows the adventure loop/pin image and name
+6. Use **+/-** buttons to set how many you have of each
+7. Click **Save** when done
 
 ### How Inventory Helps
 

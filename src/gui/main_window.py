@@ -61,17 +61,27 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(520, 460)
         self._settings = QSettings("ScoutAdvancement", "ScoutLabels")
         self._inventory: InventoryStore | None = None
+        self._inventory_enabled: bool = bool(
+            self._settings.value("inventory_enabled", False, type=bool)
+        )
         self._setup_menu()
         self._setup_ui()
+        self._apply_inventory_visibility()
 
     def _setup_menu(self) -> None:
         menu_bar = self.menuBar()
 
         # Inventory menu
         inv_menu = menu_bar.addMenu("Inventory")
-        manage_action = QAction("Manage Inventory...", self)
-        manage_action.triggered.connect(self._on_manage_inventory)
-        inv_menu.addAction(manage_action)
+        self._track_inventory_action = QAction("Track Award Inventory", self)
+        self._track_inventory_action.setCheckable(True)
+        self._track_inventory_action.setChecked(self._inventory_enabled)
+        self._track_inventory_action.toggled.connect(self._on_toggle_inventory)
+        inv_menu.addAction(self._track_inventory_action)
+        inv_menu.addSeparator()
+        self._manage_inventory_action = QAction("Manage Inventory...", self)
+        self._manage_inventory_action.triggered.connect(self._on_manage_inventory)
+        inv_menu.addAction(self._manage_inventory_action)
 
         # macOS puts "About" in the app menu automatically
         help_menu = menu_bar.addMenu("Help")
@@ -161,7 +171,9 @@ class MainWindow(QMainWindow):
         layout.addLayout(btn_layout)
 
         # Inventory buttons
-        inv_layout = QHBoxLayout()
+        self._inventory_row = QWidget()
+        inv_layout = QHBoxLayout(self._inventory_row)
+        inv_layout.setContentsMargins(0, 0, 0, 0)
 
         self._manage_inv_btn = QPushButton("Manage Inventory")
         self._manage_inv_btn.setMinimumHeight(36)
@@ -185,7 +197,7 @@ class MainWindow(QMainWindow):
         self._deduct_btn.clicked.connect(self._on_deduct_inventory)
         inv_layout.addWidget(self._deduct_btn)
 
-        layout.addLayout(inv_layout)
+        layout.addWidget(self._inventory_row)
 
         self._status = QTextEdit()
         self._status.setReadOnly(True)
@@ -198,8 +210,19 @@ class MainWindow(QMainWindow):
         self._preview_btn.setEnabled(has_files)
         self._generate_btn.setEnabled(has_files)
         self._bagging_btn.setEnabled(has_files)
-        self._check_inv_btn.setEnabled(has_files)
-        self._deduct_btn.setEnabled(has_files)
+        self._check_inv_btn.setEnabled(has_files and self._inventory_enabled)
+        self._deduct_btn.setEnabled(has_files and self._inventory_enabled)
+
+    def _on_toggle_inventory(self, checked: bool) -> None:
+        self._inventory_enabled = checked
+        self._settings.setValue("inventory_enabled", checked)
+        self._apply_inventory_visibility()
+        # Re-evaluate button enabled state against currently loaded files
+        self._on_files_changed(len(self._file_list.get_valid_file_paths()))
+
+    def _apply_inventory_visibility(self) -> None:
+        self._inventory_row.setVisible(self._inventory_enabled)
+        self._manage_inventory_action.setEnabled(self._inventory_enabled)
 
     def _on_label_type_changed(self, _index: int) -> None:
         name = self._label_combo.currentData()
