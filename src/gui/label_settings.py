@@ -52,6 +52,15 @@ class LabelSettingsDialog(QDialog):
 
         layout.addLayout(form)
 
+        inventory_form = QFormLayout()
+        self._track_inventory = QCheckBox("Track award inventory")
+        self._track_inventory.setToolTip(
+            "Adds inventory management to the main window. Requires keeping the\n"
+            "adventure catalog up to date with BSA program changes each year."
+        )
+        inventory_form.addRow("", self._track_inventory)
+        layout.addLayout(inventory_form)
+
         # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -78,12 +87,16 @@ class LabelSettingsDialog(QDialog):
         self._show_sku.setChecked(
             bool(self._settings.value("template/show_sku", False, type=bool))
         )
+        self._track_inventory.setChecked(
+            bool(self._settings.value("inventory_enabled", False, type=bool))
+        )
 
     def _on_save(self) -> None:
         self._settings.setValue("template/name_order", self._name_order.currentData())
         self._settings.setValue("template/show_den_number", self._show_den.isChecked())
         self._settings.setValue("template/show_date_earned", self._show_date.isChecked())
         self._settings.setValue("template/show_sku", self._show_sku.isChecked())
+        self._settings.setValue("inventory_enabled", self._track_inventory.isChecked())
         self.accept()
 
 

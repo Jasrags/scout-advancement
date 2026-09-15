@@ -296,7 +296,7 @@ def generate_pdf(
 
     resolved = Path(output_path).resolve()
     if resolved.suffix.lower() != ".pdf":
-        raise OSError(f"Output path must end with .pdf: {resolved.name}")
+        resolved = resolved.with_suffix(".pdf")
     parent = resolved.parent
     if not parent.exists():
         raise OSError(f"Output directory does not exist: {parent}")

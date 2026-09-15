@@ -1,6 +1,6 @@
 # Project: Scout Advancement Labels
 
-Desktop app (PySide6) that generates printable Avery 6427 labels from Scoutbook CSV exports.
+Desktop app (PySide6) that generates printable Avery labels, bagging guides, and manages award inventory from Scoutbook CSV exports. Built for Cub Scout pack advancement chairs.
 
 ## Tech Stack
 
@@ -49,16 +49,47 @@ Releases are triggered manually via the GitHub Actions "Release" workflow (`gh w
 
 ```
 src/
-  core/           # CSV parsing + PDF label generation (tested, 80%+ coverage)
-  gui/            # PySide6 GUI (main_window, file_list_widget)
+  core/
+    adventure_data.py  # Adventure catalog with local image paths (per rank)
+    bagging_guide.py   # Bagging guide PDF generator
+    csv_validator.py   # CSV format validation
+    inventory.py       # Award inventory store (JSON persistence)
+    label_generator.py # Label PDF generator + CSV reader
+    label_spec.py      # Avery label specifications + templates
+  gui/
+    main_window.py        # Main app window (file list, buttons, menus)
+    file_list_widget.py   # CSV file drag-drop and validation list
+    inventory_widget.py   # Per-rank inventory dialog with adventure images
+    inventory_dialogs.py  # Deduction confirm/summary, shopping list dialogs
+    label_preview.py      # Label preview dialog
+    label_settings.py     # Label template settings dialog
   main.py         # GUI entry point
   version.py      # Version (auto-managed by semantic-release)
 tests/            # pytest tests for src/core
 scripts/build.sh  # PyInstaller build script (macOS/Linux)
 scripts/build.ps1 # PyInstaller build script (Windows)
-packaging/        # .spec file and platform icons (.icns, .ico)
+packaging/
+  images/         # Bundled adventure loop/pin images (139 files)
+  *.spec          # PyInstaller spec file
+  *.icns, *.ico   # Platform icons
 sample_data/      # Example CSVs for testing
 ```
+
+## Key Data Flow
+
+```
+Scoutbook PO CSV → read_advancements() → list[ScoutRecord]
+  → generate_pdf()           → Labels PDF
+  → generate_bagging_guide() → Bagging Guide PDF
+  → aggregate_demand()       → inventory check/deduct
+```
+
+## Inventory System
+
+- Keyed by `(rank, adventure_name)`, not SKU
+- Adventure catalog driven by `adventure_data.ADVENTURES` (all known adventures pre-populated)
+- JSON persistence at `QStandardPaths.AppDataLocation / inventory.json`
+- `aggregate_demand()` matches CSV items to adventures via `find_adventure()`
 
 ## CI/CD
 

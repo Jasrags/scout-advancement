@@ -1,406 +1,267 @@
 """Adventure data mapping for Cub Scout ranks.
 
-Maps adventure names to image URLs from scouting.org. Used by the bagging
-guide generator to show loop/pin images alongside each adventure.
+Maps adventure names to local loop/pin images. Used by the bagging guide
+generator and inventory widget to show images alongside each adventure.
 
-Data sourced from: https://www.scouting.org/programs/cub-scouts/adventures/
-via the WordPress REST API (wp-json/wp/v2/pages?slug=<rank>).
+Images are bundled in packaging/images/<version>/ and were originally sourced
+from https://www.scouting.org/programs/cub-scouts/adventures/
 
-To refresh this data when the program year changes, run:
+To refresh images when the program year changes, run:
     python scripts/fetch_adventures.py
 """
 
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
-_IMG = "https://www.scouting.org/wp-content/uploads"
+
+def _resolve_img_root() -> Path:
+    # In a PyInstaller bundle, data files live under sys._MEIPASS.
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass) / "packaging" / "images"
+    return Path(__file__).resolve().parent.parent.parent / "packaging" / "images"
+
+
+_IMG_ROOT = _resolve_img_root()
+
+# Module-level active version state
+_active_version: str = ""
 
 
 @dataclass(frozen=True)
 class Adventure:
     name: str
-    image_url: str
+    image_path: str
     required: bool
 
 
 # ---------------------------------------------------------------------------
-# Adventure data by rank (2023-2024 program year)
+# Adventure definitions (name, image filename, required)
+# These are version-independent — the image path is computed per version.
 # ---------------------------------------------------------------------------
 
-ADVENTURES: dict[str, list[Adventure]] = {
+_ADVENTURE_DEFS: dict[str, list[tuple[str, str, bool]]] = {
     "lion": [
-        # Required (6)
-        Adventure(
-            "Fun on the Run", f"{_IMG}/2024/01/2023_2024_loops_pins_Fun_On_The_Run.jpg", True
-        ),
-        Adventure("Lion's Roar", f"{_IMG}/2024/01/2023_2024_loops_pins_Lions_Roar.jpg", True),
-        Adventure("Lion's Pride", f"{_IMG}/2024/01/2023_2024_loops_pins_Lions_Pride.jpg", True),
-        Adventure(
-            "King of the Jungle",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_King_of_The_Jungle.jpg",
-            True,
-        ),
-        Adventure("Mountain Lion", f"{_IMG}/2024/01/2023_2024_loops_pins_Mountain_Lion.jpg", True),
-        Adventure("Bobcat", f"{_IMG}/2024/01/2023_2024_loops_pins_Lion_Bobcat.jpg", True),
-        # Elective
-        Adventure(
-            "Build It Up, Knock It Down",
-            f"{_IMG}/2024/03/2023_2024_loops_pins_Build_It_Up_Knock_It_Down-1.jpg",
-            False,
-        ),
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/03/2023_2024_loops_pins_Champions_of_Nature-1.jpg",
-            False,
-        ),
-        Adventure("Count On Me", f"{_IMG}/2024/03/2023_2024_loops_pins_Count_On_Me-1.jpg", False),
-        Adventure(
-            "Everyday Tech", f"{_IMG}/2024/03/2023_2024_loops_pins_Everyday_Tech-1.jpg", False
-        ),
-        Adventure(
-            "Gizmos and Gadgets",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Gizmos_and_Gadgets.jpg",
-            False,
-        ),
-        Adventure("Go Fish", f"{_IMG}/2024/01/2023_2024_loops_pins_Go_Fish.jpg", False),
-        Adventure(
-            "I'll Do It Myself", f"{_IMG}/2024/01/2023_2024_loops_pins_Ill_Do_It_Myself.jpg", False
-        ),
-        Adventure("Let's Camp", f"{_IMG}/2024/01/2023_2024_loops_pins_Lets_Camp-1.jpg", False),
-        Adventure("On a Roll", f"{_IMG}/2024/01/2023_2024_loops_pins_On_a_Roll.jpg", False),
-        Adventure("On Your Mark", f"{_IMG}/2024/01/2023_2024_loops_pins_On_Your_Mark.jpg", False),
-        Adventure("Pick My Path", f"{_IMG}/2024/03/2023_2024_loops_pins_Pick_My_Path.jpg", False),
-        Adventure("Race Time", f"{_IMG}/2024/01/2023_2024_loops_pins_Race_Time-1.jpg", False),
-        Adventure(
-            "Ready, Set, Grow", f"{_IMG}/2024/01/2023_2024_loops_pins_Ready_Set_Grow.jpg", False
-        ),
-        Adventure("Time to Swim", f"{_IMG}/2024/01/2023_2024_loops_pins_Time_to_Swim.jpg", False),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot.jpg", False),
+        ("Fun on the Run", "lion_fun_on_the_run.jpg", True),
+        ("Lion's Roar", "lion_lion_s_roar.jpg", True),
+        ("Lion's Pride", "lion_lion_s_pride.jpg", True),
+        ("King of the Jungle", "lion_king_of_the_jungle.jpg", True),
+        ("Mountain Lion", "lion_mountain_lion.jpg", True),
+        ("Bobcat", "lion_bobcat.jpg", True),
+        ("Build It Up, Knock It Down", "lion_build_it_up_knock_it_down.jpg", False),
+        ("Champions for Nature", "lion_champions_for_nature.jpg", False),
+        ("Count On Me", "lion_count_on_me.jpg", False),
+        ("Everyday Tech", "lion_everyday_tech.jpg", False),
+        ("Gizmos and Gadgets", "lion_gizmos_and_gadgets.jpg", False),
+        ("Go Fish", "lion_go_fish.jpg", False),
+        ("I'll Do It Myself", "lion_i_ll_do_it_myself.jpg", False),
+        ("Let's Camp", "lion_let_s_camp.jpg", False),
+        ("On a Roll", "lion_on_a_roll.jpg", False),
+        ("On Your Mark", "lion_on_your_mark.jpg", False),
+        ("Pick My Path", "lion_pick_my_path.jpg", False),
+        ("Race Time", "lion_race_time.jpg", False),
+        ("Ready, Set, Grow", "lion_ready_set_grow.jpg", False),
+        ("Time to Swim", "lion_time_to_swim.jpg", False),
+        ("Archery", "lion_archery.jpg", False),
+        ("Slingshot", "lion_slingshot.jpg", False),
     ],
     "tiger": [
-        # Required (6)
-        Adventure("Tiger Bites", f"{_IMG}/2024/04/2023_2024_loops_pins_Tiger_Bites.jpg", True),
-        Adventure("Tiger's Roar", f"{_IMG}/2024/04/2023_2024_loops_pins_Tigers-Roar.jpg", True),
-        Adventure("Tiger Circles", f"{_IMG}/2024/04/2023_2024_loops_pins_Tiger_Circles.jpg", True),
-        Adventure("Team Tiger", f"{_IMG}/2024/04/2023_2024_loops_pins_Team_Tiger.jpg", True),
-        Adventure(
-            "Tigers in the Wild",
-            f"{_IMG}/2024/04/2023_2024_loops_pins_Tigers_in_the_Wild.jpg",
-            True,
-        ),
-        Adventure("Bobcat", f"{_IMG}/2024/04/2023_2024_loops_pins_Tiger-Bobcat.jpg", True),
-        # Elective
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Champions_of_Nature.jpg",
-            False,
-        ),
-        Adventure(
+        ("Tiger Bites", "tiger_tiger_bites.jpg", True),
+        ("Tiger's Roar", "tiger_tiger_s_roar.jpg", True),
+        ("Tiger Circles", "tiger_tiger_circles.jpg", True),
+        ("Team Tiger", "tiger_team_tiger.jpg", True),
+        ("Tigers in the Wild", "tiger_tigers_in_the_wild.jpg", True),
+        ("Bobcat", "tiger_bobcat.jpg", True),
+        ("Champions for Nature", "tiger_champions_for_nature.jpg", False),
+        (
             "Curiosity, Intrigue and Magical Mysteries",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Curiosity_Intrigue_and_Magical_Mysteries.jpg",
+            "tiger_curiosity_intrigue_and_magical_mysteries.jpg",
             False,
         ),
-        Adventure(
-            "Designed by Tiger",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Designed_by_Tiger.jpg",
-            False,
-        ),
-        Adventure("Fish On", f"{_IMG}/2024/01/2023_2024_loops_pins_Fish_On.jpg", False),
-        Adventure(
-            "Floats and Boats", f"{_IMG}/2024/01/2023_2024_loops_pins_Floats_and_Boats.jpg", False
-        ),
-        Adventure("Good Knights", f"{_IMG}/2024/01/2023_2024_loops_pins_Good_Knights.jpg", False),
-        Adventure("Let's Camp", f"{_IMG}/2024/01/2023_2024_loops_pins_Lets_Camp.jpg", False),
-        Adventure("Race Time", f"{_IMG}/2024/01/2023_2024_loops_pins_Race_Time.jpg", False),
-        Adventure(
-            "Rolling Tigers", f"{_IMG}/2024/01/2023_2024_loops_pins_Rolling_Tigers.jpg", False
-        ),
-        Adventure(
-            "Safe and Smart",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Tiger_Safe_and_Smart.jpg",
-            False,
-        ),
-        Adventure(
-            "Sky is the Limit", f"{_IMG}/2024/01/2023_2024_loops_pins_Sky_is_the_Limit.jpg", False
-        ),
-        Adventure(
-            "Stories in Shapes",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Stories_in_Shapes.jpg",
-            False,
-        ),
-        Adventure(
-            "Summertime Fun", f"{_IMG}/2024/01/2023_2024_loops_pins_Summertime_Fun.jpg", False
-        ),
-        Adventure(
-            "Tech All Around", f"{_IMG}/2024/02/2023_2024_loops_pins_Tech_All_Around.jpg", False
-        ),
-        Adventure("Tiger Tag", f"{_IMG}/2024/01/2023_2024_loops_pins_Tigers_Tag.jpg", False),
-        Adventure(
-            "Tiger-iffic!", f"{_IMG}/2024/01/2023_2024_loops_pins_Tiger_rrrrific.jpg", False
-        ),
-        Adventure(
-            "Tigers in the Water",
-            f"{_IMG}/2024/03/2023_2024_loops_pins_Tigers_in_the_Water.jpg",
-            False,
-        ),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery-1.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot-1.jpg", False),
-        Adventure("BB", f"{_IMG}/2024/08/2023_2024_loops_pins_BB_Guns.jpg", False),
+        ("Designed by Tiger", "tiger_designed_by_tiger.jpg", False),
+        ("Fish On", "tiger_fish_on.jpg", False),
+        ("Floats and Boats", "tiger_floats_and_boats.jpg", False),
+        ("Good Knights", "tiger_good_knights.jpg", False),
+        ("Let's Camp", "tiger_let_s_camp.jpg", False),
+        ("Race Time", "tiger_race_time.jpg", False),
+        ("Rolling Tigers", "tiger_rolling_tigers.jpg", False),
+        ("Safe and Smart", "tiger_safe_and_smart.jpg", False),
+        ("Sky is the Limit", "tiger_sky_is_the_limit.jpg", False),
+        ("Stories in Shapes", "tiger_stories_in_shapes.jpg", False),
+        ("Summertime Fun", "tiger_summertime_fun.jpg", False),
+        ("Tech All Around", "tiger_tech_all_around.jpg", False),
+        ("Tiger Tag", "tiger_tiger_tag.jpg", False),
+        ("Tiger-iffic!", "tiger_tiger_iffic.jpg", False),
+        ("Tigers in the Water", "tiger_tigers_in_the_water.jpg", False),
+        ("Archery", "tiger_archery.jpg", False),
+        ("Slingshot", "tiger_slingshot.jpg", False),
+        ("BB", "tiger_bb.jpg", False),
     ],
     "wolf": [
-        # Required (6)
-        Adventure(
-            "Running With the Pack",
-            f"{_IMG}/2024/04/2023_2024_loops_pins_Running_With_the_Pack.jpg",
-            True,
-        ),
-        Adventure(
-            "Safety in Numbers", f"{_IMG}/2024/04/2023_2024_loops_pins_Safety_in_Numbers.jpg", True
-        ),
-        Adventure("Footsteps", f"{_IMG}/2024/04/2023_2024_loops_pins_Footsteps.jpg", True),
-        Adventure("Council Fire", f"{_IMG}/2024/04/2023_2024_loops_pins_Council_Fire.jpg", True),
-        Adventure(
-            "Paws on the Path", f"{_IMG}/2024/04/2023_2024_loops_pins_Paws_on_the_Path.jpg", True
-        ),
-        Adventure("Bobcat", f"{_IMG}/2024/04/2023_2024_loops_pins_Wolf_Bobcat.jpg", True),
-        # Elective
-        Adventure(
-            "A Wolf Goes Fishing",
-            f"{_IMG}/2023/11/2023_2024_loops_pins_A_Wolf_Goes_Fishing-1.jpg",
-            False,
-        ),
-        Adventure(
-            "Adventures in Coins",
-            f"{_IMG}/2024/02/2023_2024_loops_pins_Adventures_in_Coins.jpg",
-            False,
-        ),
-        Adventure(
-            "Air of the Wolf", f"{_IMG}/2024/02/2023_2024_loops_pins_Air_of_the_Wolf.jpg", False
-        ),
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/02/2023_2024_loops_pins_Champions_of_Nature.jpg",
-            False,
-        ),
-        Adventure(
-            "Code of the Wolf", f"{_IMG}/2024/02/2023_2024_loops_pins_Code_of_the_Wolf.jpg", False
-        ),
-        Adventure(
-            "Computing Wolves", f"{_IMG}/2023/11/2023_2024_loops_pins_Computing_Wolves.jpg", False
-        ),
-        Adventure(
-            "Cubs Who Care", f"{_IMG}/2023/11/2023_2024_loops_pins_Cubs_Who_Care.jpg", False
-        ),
-        Adventure(
-            "Digging in the Past",
-            f"{_IMG}/2023/11/2023_2024_loops_pins_Digging_Into_the_Past.jpg",
-            False,
-        ),
-        Adventure(
-            "Finding Your Way", f"{_IMG}/2023/11/2023_2024_loops_pins_Finding_Your_Way.jpg", False
-        ),
-        Adventure("Germs Alive!", f"{_IMG}/2023/11/2023_2024_loops_pins_Germs_Alive.jpg", False),
-        Adventure("Let's Camp", f"{_IMG}/2024/02/2023_2024_loops_pins_Lets_Camp.jpg", False),
-        Adventure(
-            "Paws for Water", f"{_IMG}/2023/11/2023_2024_loops_pins_Paws_For_Water.jpg", False
-        ),
-        Adventure(
-            "Paws of Skill", f"{_IMG}/2023/11/2023_2024_loops_pins_Paws_of_Skill.jpg", False
-        ),
-        Adventure(
-            "Pedal With the Pack",
-            f"{_IMG}/2023/11/2023_2024_loops_pins_Pedal_With_the_Pack.jpg",
-            False,
-        ),
-        Adventure("Race Time", f"{_IMG}/2023/11/2023_2024_loops_pins_Race_Time.jpg", False),
-        Adventure(
-            "Spirit of the Water",
-            f"{_IMG}/2023/11/2023_2024_loops_pins_Spirit_of_the_Water.jpg",
-            False,
-        ),
-        Adventure(
-            "Summertime Fun", f"{_IMG}/2023/11/2023_2024_loops_pins_Summertime_Fun.jpg", False
-        ),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery-2.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot-2.jpg", False),
-        Adventure("BB", f"{_IMG}/2024/08/2023_2024_loops_pins_BB_Guns-1.jpg", False),
+        ("Running With the Pack", "wolf_running_with_the_pack.jpg", True),
+        ("Safety in Numbers", "wolf_safety_in_numbers.jpg", True),
+        ("Footsteps", "wolf_footsteps.jpg", True),
+        ("Council Fire", "wolf_council_fire.jpg", True),
+        ("Paws on the Path", "wolf_paws_on_the_path.jpg", True),
+        ("Bobcat", "wolf_bobcat.jpg", True),
+        ("A Wolf Goes Fishing", "wolf_a_wolf_goes_fishing.jpg", False),
+        ("Adventures in Coins", "wolf_adventures_in_coins.jpg", False),
+        ("Air of the Wolf", "wolf_air_of_the_wolf.jpg", False),
+        ("Champions for Nature", "wolf_champions_for_nature.jpg", False),
+        ("Code of the Wolf", "wolf_code_of_the_wolf.jpg", False),
+        ("Computing Wolves", "wolf_computing_wolves.jpg", False),
+        ("Cubs Who Care", "wolf_cubs_who_care.jpg", False),
+        ("Digging in the Past", "wolf_digging_in_the_past.jpg", False),
+        ("Finding Your Way", "wolf_finding_your_way.jpg", False),
+        ("Germs Alive!", "wolf_germs_alive.jpg", False),
+        ("Let's Camp", "wolf_let_s_camp.jpg", False),
+        ("Paws for Water", "wolf_paws_for_water.jpg", False),
+        ("Paws of Skill", "wolf_paws_of_skill.jpg", False),
+        ("Pedal With the Pack", "wolf_pedal_with_the_pack.jpg", False),
+        ("Race Time", "wolf_race_time.jpg", False),
+        ("Spirit of the Water", "wolf_spirit_of_the_water.jpg", False),
+        ("Summertime Fun", "wolf_summertime_fun.jpg", False),
+        ("Archery", "wolf_archery.jpg", False),
+        ("Slingshot", "wolf_slingshot.jpg", False),
+        ("BB", "wolf_bb.jpg", False),
     ],
     "bear": [
-        # Required (6)
-        Adventure("Bear Strong", f"{_IMG}/2024/02/2023_2024_loops_pins_Bear_Strong.jpg", True),
-        Adventure("Standing Tall", f"{_IMG}/2024/01/2023_2024_loops_pins_Standing_Tall.jpg", True),
-        Adventure("Fellowship", f"{_IMG}/2024/02/2023_2024_loops_pins_Fellowship.jpg", True),
-        Adventure(
-            "Paws for Action", f"{_IMG}/2024/01/2023_2024_loops_pins_Paws_For_Action.jpg", True
-        ),
-        Adventure("Bear Habitat", f"{_IMG}/2024/02/2023_2024_loops_pins_Bear_Habitat.jpg", True),
-        Adventure("Bobcat", f"{_IMG}/2024/01/2023_2024_loops_pins_Bear_Bobcat-1.jpg", True),
-        # Elective
-        Adventure(
-            "A Bear Goes Fishing",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_A_Bear_Goes_Fishing.jpg",
-            False,
-        ),
-        Adventure(
-            "Balancing Bears", f"{_IMG}/2024/01/2023_2024_loops_pins_Balancing_Bears.jpg", False
-        ),
-        Adventure(
-            "Baloo the Builder",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Baloo_the_Builder.jpg",
-            False,
-        ),
-        Adventure("Bears Afloat", f"{_IMG}/2024/01/2023_2024_loops_pins_Bears_Afloat.jpg", False),
-        Adventure(
-            "Bears on Bikes", f"{_IMG}/2024/01/2023_2024_loops_pins_Bears_on_Bikes.jpg", False
-        ),
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Champions_of_Nature-1.jpg",
-            False,
-        ),
-        Adventure("Chef Tech", f"{_IMG}/2024/01/2023_2024_loops_pins_Chef_Tech.jpg", False),
-        Adventure("Critter Care", f"{_IMG}/2024/01/2023_2024_loops_pins_Critter_Care.jpg", False),
-        Adventure("Forensics", f"{_IMG}/2024/01/2023_2024_loops_pins_Forensics.jpg", False),
-        Adventure("Let's Camp", f"{_IMG}/2024/01/2023_2024_loops_pins_Lets_Camp-2.jpg", False),
-        Adventure(
-            "Marble Madness", f"{_IMG}/2024/01/2023_2024_loops_pins_Marble_Madness.jpg", False
-        ),
-        Adventure("Race Time", f"{_IMG}/2024/01/2023_2024_loops_pins_Race_Time-2.jpg", False),
-        Adventure(
-            "Roaring Laughter", f"{_IMG}/2024/01/2023_2024_loops_pins_Roaring_Laughter.jpg", False
-        ),
-        Adventure("Salmon Run", f"{_IMG}/2024/01/2023_2024_loops_pins_Salmon_Run.jpg", False),
-        Adventure(
-            "Summertime Fun", f"{_IMG}/2024/01/2023_2024_loops_pins_Summertime_Fun-1.jpg", False
-        ),
-        Adventure(
-            "Super Science", f"{_IMG}/2024/01/2023_2024_loops_pins_Super_Science.jpg", False
-        ),
-        Adventure("Whittling", f"{_IMG}/2024/01/2023_2024_loops_pins_Whittling.jpg", False),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery-3.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot-3.jpg", False),
-        Adventure("BB", f"{_IMG}/2024/08/2023_2024_loops_pins_BB_Guns-2.jpg", False),
+        ("Bear Strong", "bear_bear_strong.jpg", True),
+        ("Standing Tall", "bear_standing_tall.jpg", True),
+        ("Fellowship", "bear_fellowship.jpg", True),
+        ("Paws for Action", "bear_paws_for_action.jpg", True),
+        ("Bear Habitat", "bear_bear_habitat.jpg", True),
+        ("Bobcat", "bear_bobcat.jpg", True),
+        ("A Bear Goes Fishing", "bear_a_bear_goes_fishing.jpg", False),
+        ("Balancing Bears", "bear_balancing_bears.jpg", False),
+        ("Baloo the Builder", "bear_baloo_the_builder.jpg", False),
+        ("Bears Afloat", "bear_bears_afloat.jpg", False),
+        ("Bears on Bikes", "bear_bears_on_bikes.jpg", False),
+        ("Champions for Nature", "bear_champions_for_nature.jpg", False),
+        ("Chef Tech", "bear_chef_tech.jpg", False),
+        ("Critter Care", "bear_critter_care.jpg", False),
+        ("Forensics", "bear_forensics.jpg", False),
+        ("Let's Camp", "bear_let_s_camp.jpg", False),
+        ("Marble Madness", "bear_marble_madness.jpg", False),
+        ("Race Time", "bear_race_time.jpg", False),
+        ("Roaring Laughter", "bear_roaring_laughter.jpg", False),
+        ("Salmon Run", "bear_salmon_run.jpg", False),
+        ("Summertime Fun", "bear_summertime_fun.jpg", False),
+        ("Super Science", "bear_super_science.jpg", False),
+        ("Whittling", "bear_whittling.jpg", False),
+        ("Archery", "bear_archery.jpg", False),
+        ("Slingshot", "bear_slingshot.jpg", False),
+        ("BB", "bear_bb.jpg", False),
     ],
     "webelos": [
-        # Required (6)
-        Adventure("Bobcat", f"{_IMG}/2024/01/2023_2024_loops_pins_Webelos_Bobcat_edit.jpg", True),
-        Adventure(
-            "Stronger, Faster, Higher",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Stronger_Faster_Higher.jpg",
-            True,
-        ),
-        Adventure("My Safety", f"{_IMG}/2024/02/2023_2024_loops_pins_My_Safety.jpg", True),
-        Adventure("My Family", f"{_IMG}/2024/01/2023_2024_loops_pins_My_Family.jpg", True),
-        Adventure("My Community", f"{_IMG}/2024/01/2023_2024_loops_pins_My_Community.jpg", True),
-        Adventure(
-            "Webelos Walkabout", f"{_IMG}/2024/01/2023_2024_loops_pins_Webelos_Walkabout.jpg", True
-        ),
-        # Elective
-        Adventure("Aquanaut", f"{_IMG}/2024/01/2023_2024_loops_pins_Aquanaut.jpg", False),
-        Adventure(
-            "Art Explosion", f"{_IMG}/2024/01/2023_2024_loops_pins_Art_Explosion.jpg", False
-        ),
-        Adventure(
-            "Aware and Care", f"{_IMG}/2024/01/2023_2024_loops_pins_Aware_and_Care.jpg", False
-        ),
-        Adventure("Build It", f"{_IMG}/2024/01/2023_2024_loops_pins_Build_It.jpg", False),
-        Adventure(
-            "Catch the Big One",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Catch_the_Big_One.jpg",
-            False,
-        ),
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Champions_of_Nature-2.jpg",
-            False,
-        ),
-        Adventure("Chef's Knife", f"{_IMG}/2024/01/2023_2024_loops_pins_ChefsKnife.jpg", False),
-        Adventure("Earth Rocks", f"{_IMG}/2024/01/2023_2024_loops_pins_Earth_Rocks.jpg", False),
-        Adventure("Let's Camp", f"{_IMG}/2024/01/2023_2024_loops_pins_Lets_Camp-3.jpg", False),
-        Adventure(
-            "Math on the Trail",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Math_on_the_Trail.jpg",
-            False,
-        ),
-        Adventure(
-            "Modular Design", f"{_IMG}/2024/05/2023_2024_loops_pins_Modular_Design.jpg", False
-        ),
-        Adventure(
-            "Paddle Onward", f"{_IMG}/2024/01/2023_2024_loops_pins_Paddle_Onward.jpg", False
-        ),
-        Adventure("Pedal Away", f"{_IMG}/2024/01/2023_2024_loops_pins_Pedal_Away.jpg", False),
-        Adventure("Race Time", f"{_IMG}/2024/01/2023_2024_loops_pins_Race_Time-3.jpg", False),
-        Adventure(
-            "Summertime Fun", f"{_IMG}/2024/01/2023_2024_loops_pins_Summertime_Fun-2.jpg", False
-        ),
-        Adventure(
-            "Tech on the Trail",
-            f"{_IMG}/2024/01/2023_2024_loops_pins_Tech_on_the_Trail.jpg",
-            False,
-        ),
-        Adventure("Yo-Yo", f"{_IMG}/2024/01/2023_2024_loops_pins_Yo_Yo.jpg", False),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery-4.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot-4.jpg", False),
-        Adventure("BB Gun", f"{_IMG}/2024/08/2023_2024_loops_pins_BB_Guns-3.jpg", False),
+        ("Bobcat", "webelos_bobcat.jpg", True),
+        ("Stronger, Faster, Higher", "webelos_stronger_faster_higher.jpg", True),
+        ("My Safety", "webelos_my_safety.jpg", True),
+        ("My Family", "webelos_my_family.jpg", True),
+        ("My Community", "webelos_my_community.jpg", True),
+        ("Webelos Walkabout", "webelos_webelos_walkabout.jpg", True),
+        ("Aquanaut", "webelos_aquanaut.jpg", False),
+        ("Art Explosion", "webelos_art_explosion.jpg", False),
+        ("Aware and Care", "webelos_aware_and_care.jpg", False),
+        ("Build It", "webelos_build_it.jpg", False),
+        ("Catch the Big One", "webelos_catch_the_big_one.jpg", False),
+        ("Champions for Nature", "webelos_champions_for_nature.jpg", False),
+        ("Chef's Knife", "webelos_chef_s_knife.jpg", False),
+        ("Earth Rocks", "webelos_earth_rocks.jpg", False),
+        ("Let's Camp", "webelos_let_s_camp.jpg", False),
+        ("Math on the Trail", "webelos_math_on_the_trail.jpg", False),
+        ("Modular Design", "webelos_modular_design.jpg", False),
+        ("Paddle Onward", "webelos_paddle_onward.jpg", False),
+        ("Pedal Away", "webelos_pedal_away.jpg", False),
+        ("Race Time", "webelos_race_time.jpg", False),
+        ("Summertime Fun", "webelos_summertime_fun.jpg", False),
+        ("Tech on the Trail", "webelos_tech_on_the_trail.jpg", False),
+        ("Yo-Yo", "webelos_yo_yo.jpg", False),
+        ("Archery", "webelos_archery.jpg", False),
+        ("Slingshot", "webelos_slingshot.jpg", False),
+        ("BB Gun", "webelos_bb_gun.jpg", False),
     ],
     "arrow of light": [
-        # Required (6)
-        Adventure(
-            "Personal Fitness", f"{_IMG}/2024/04/2023_2024_loops_pins_Personal_Fitness.jpg", True
-        ),
-        Adventure("First Aid", f"{_IMG}/2024/04/2023_2024_loops_pins_First_Aid.jpg", True),
-        Adventure("Duty to God", f"{_IMG}/2024/04/2023_2024_loops_pins_AOL_Duty_to_God.jpg", True),
-        Adventure("Citizenship", f"{_IMG}/2024/04/2023_2024_loops_pins_Citizenship.jpg", True),
-        Adventure(
-            "Outdoor Adventurer",
-            f"{_IMG}/2024/04/2023_2024_loops_pins_AOL_Outdoor_Adventurer.jpg",
-            True,
-        ),
-        Adventure("Bobcat", f"{_IMG}/2024/04/2023_2024_loops_pins_AOL_Bobcat.jpg", True),
-        # Elective
-        Adventure(
-            "Champions for Nature",
-            f"{_IMG}/2024/05/2023_2024_loops_pins_Champions_of_Nature.jpg",
-            False,
-        ),
-        Adventure("Cycling", f"{_IMG}/2024/05/2023_2024_loops_pins_Cycling.jpg", False),
-        Adventure("Engineer", f"{_IMG}/2024/05/2023_2024_loops_pins_Engineering.jpg", False),
-        Adventure("Estimations", f"{_IMG}/2024/05/2023_2024_loops_pins_Estimations.jpg", False),
-        Adventure("Fishing", f"{_IMG}/2024/05/2023_2024_loops_pins_Fishing.jpg", False),
-        Adventure(
-            "High Tech Outdoors",
-            f"{_IMG}/2024/05/2023_2024_loops_pins_High_Tech_Outdoors.jpg",
-            False,
-        ),
-        Adventure(
-            "Into the Wild", f"{_IMG}/2024/05/2023_2024_loops_pins_Into_the_Wild.jpg", False
-        ),
-        Adventure(
-            "Into the Woods", f"{_IMG}/2024/05/2023_2024_loops_pins_Into_the_Woods.jpg", False
-        ),
-        Adventure("Knife Safety", f"{_IMG}/2024/05/2023_2024_loops_pins_Knife_Safety.jpg", False),
-        Adventure("Paddle Craft", f"{_IMG}/2024/05/2023_2024_loops_pins_Paddle_Craft.jpg", False),
-        Adventure("Race Time", f"{_IMG}/2024/05/2023_2024_loops_pins_Race_Time.jpg", False),
-        Adventure(
-            "Summertime Fun", f"{_IMG}/2024/05/2023_2024_loops_pins_Summertime_Fun.jpg", False
-        ),
-        Adventure("Swimming", f"{_IMG}/2024/05/2023_2024_loops_pins_Swimming.jpg", False),
-        # Shooting sports
-        Adventure("Archery", f"{_IMG}/2024/08/2023_2024_loops_pins_Archery-5.jpg", False),
-        Adventure("Slingshot", f"{_IMG}/2024/08/2023_2024_loops_pins_Slingshot-5.jpg", False),
-        Adventure("BB", f"{_IMG}/2024/08/2023_2024_loops_pins_BB_Guns-4.jpg", False),
+        ("Personal Fitness", "arrow_of_light_personal_fitness.jpg", True),
+        ("First Aid", "arrow_of_light_first_aid.jpg", True),
+        ("Duty to God", "arrow_of_light_duty_to_god.jpg", True),
+        ("Citizenship", "arrow_of_light_citizenship.jpg", True),
+        ("Outdoor Adventurer", "arrow_of_light_outdoor_adventurer.jpg", True),
+        ("Bobcat", "arrow_of_light_bobcat.jpg", True),
+        ("Champions for Nature", "arrow_of_light_champions_for_nature.jpg", False),
+        ("Cycling", "arrow_of_light_cycling.jpg", False),
+        ("Engineer", "arrow_of_light_engineer.jpg", False),
+        ("Estimations", "arrow_of_light_estimations.jpg", False),
+        ("Fishing", "arrow_of_light_fishing.jpg", False),
+        ("High Tech Outdoors", "arrow_of_light_high_tech_outdoors.jpg", False),
+        ("Into the Wild", "arrow_of_light_into_the_wild.jpg", False),
+        ("Into the Woods", "arrow_of_light_into_the_woods.jpg", False),
+        ("Knife Safety", "arrow_of_light_knife_safety.jpg", False),
+        ("Paddle Craft", "arrow_of_light_paddle_craft.jpg", False),
+        ("Race Time", "arrow_of_light_race_time.jpg", False),
+        ("Summertime Fun", "arrow_of_light_summertime_fun.jpg", False),
+        ("Swimming", "arrow_of_light_swimming.jpg", False),
+        ("Archery", "arrow_of_light_archery.jpg", False),
+        ("Slingshot", "arrow_of_light_slingshot.jpg", False),
+        ("BB", "arrow_of_light_bb.jpg", False),
     ],
 }
 
-# Rank aliases used in Scoutbook CSV exports → canonical rank keys
+
+# ---------------------------------------------------------------------------
+# Version management
+# ---------------------------------------------------------------------------
+
+
+def get_available_versions() -> list[str]:
+    """Return sorted list of available adventure versions (e.g. ['2023_2024'])."""
+    if not _IMG_ROOT.is_dir():
+        return []
+    return sorted(d.name for d in _IMG_ROOT.iterdir() if d.is_dir() and not d.name.startswith("."))
+
+
+def get_active_version() -> str:
+    """Return the currently active adventure version."""
+    global _active_version  # noqa: PLW0602
+    if not _active_version:
+        versions = get_available_versions()
+        _active_version = versions[-1] if versions else "2023_2024"
+    return _active_version
+
+
+def set_active_version(version: str) -> None:
+    """Switch the active adventure version and rebuild ADVENTURES."""
+    global _active_version, ADVENTURES
+    _active_version = version
+    ADVENTURES = _build_adventures(version)
+
+
+def _build_adventures(version: str) -> dict[str, list[Adventure]]:
+    """Build the ADVENTURES dict with image paths for the given version."""
+    img_dir = _IMG_ROOT / version
+    result: dict[str, list[Adventure]] = {}
+    for rank, defs in _ADVENTURE_DEFS.items():
+        result[rank] = [
+            Adventure(name, str(img_dir / filename), required) for name, filename, required in defs
+        ]
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Module-level ADVENTURES dict (initialized on import)
+# ---------------------------------------------------------------------------
+
+ADVENTURES: dict[str, list[Adventure]] = _build_adventures(get_active_version())
+
+
+# ---------------------------------------------------------------------------
+# Rank aliases and lookup functions
+# ---------------------------------------------------------------------------
+
 RANK_ALIASES: dict[str, str] = {
     "lion": "lion",
     "lions": "lion",
@@ -429,18 +290,10 @@ def _normalize_item_name(item_name: str) -> str:
     """Normalize a CSV Item Name for matching.
 
     Strips the ' Adventure' suffix and any rank qualifier like '(Lion)'.
-    Examples:
-        'Fun on the Run Adventure' → 'fun on the run'
-        'Archery (Lion) Adventure' → 'archery'
-        'Bobcat (Wolf) Adventure'  → 'bobcat'
-        'BB (Bears) Adventure'     → 'bb'
-        'BB Gun (Webelos) Adventure' → 'bb gun'
     """
     name = item_name.strip()
-    # Remove trailing ' Adventure'
     if name.lower().endswith(" adventure"):
         name = name[: -len(" adventure")]
-    # Remove rank qualifier: '(Lion)', '(Tigers)', '(Wolf)', '(Bears)', '(Webelos)', etc.
     name = re.sub(r"\s*\([^)]+\)\s*$", "", name)
     return name.strip().lower()
 
@@ -448,7 +301,7 @@ def _normalize_item_name(item_name: str) -> str:
 def find_adventure(item_name: str, den_type: str) -> Adventure | None:
     """Look up the Adventure matching a CSV item name and den type.
 
-    Returns None if no match is found (adventure may not be in our database yet).
+    Returns None if no match is found.
     """
     rank = normalize_rank(den_type)
     if rank is None:

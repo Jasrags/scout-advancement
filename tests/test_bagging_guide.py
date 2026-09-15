@@ -32,12 +32,11 @@ class TestGenerateBaggingGuide:
             # Condensed layout: multiple scouts per page
             assert result.page_count < result.scout_count
 
-    def test_empty_scouts_produces_empty_pdf(self) -> None:
+    def test_rejects_empty_scouts(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             out = os.path.join(tmpdir, "guide.pdf")
-            result = generate_bagging_guide([], out, download_images=False)
-            assert result.scout_count == 0
-            assert result.page_count == 0
+            with pytest.raises(OSError, match="No scouts"):
+                generate_bagging_guide([], out, download_images=False)
 
     def test_single_scout(self) -> None:
         scout = ScoutRecord(
@@ -53,11 +52,19 @@ class TestGenerateBaggingGuide:
             assert result.scout_count == 1
             assert result.page_count == 1
 
-    def test_rejects_non_pdf_extension(self) -> None:
+    def test_auto_appends_pdf_extension(self) -> None:
+        scout = ScoutRecord(
+            first="Test",
+            last="Scout",
+            den_type="lions",
+            den_num="1",
+            items=("Fun on the Run Adventure",),
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             out = os.path.join(tmpdir, "guide.txt")
-            with pytest.raises(OSError, match="must end with .pdf"):
-                generate_bagging_guide([], out, download_images=False)
+            result = generate_bagging_guide([scout], out, download_images=False)
+            assert result.output_path.endswith(".pdf")
+            assert os.path.exists(result.output_path)
 
     def test_rejects_nonexistent_directory(self) -> None:
         with pytest.raises(OSError, match="does not exist"):

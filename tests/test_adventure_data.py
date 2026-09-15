@@ -1,5 +1,7 @@
 """Tests for src.core.adventure_data."""
 
+from pathlib import Path
+
 import pytest
 
 from src.core.adventure_data import (
@@ -7,8 +9,11 @@ from src.core.adventure_data import (
     Adventure,
     _normalize_item_name,
     find_adventure,
+    get_active_version,
+    get_available_versions,
     get_rank_adventures,
     normalize_rank,
+    set_active_version,
 )
 
 
@@ -71,7 +76,7 @@ class TestFindAdventure:
         assert result is not None
         assert result.name == "Fun on the Run"
         assert result.required is True
-        assert "Fun_On_The_Run" in result.image_url
+        assert "fun_on_the_run" in result.image_path
 
     def test_finds_elective_adventure(self) -> None:
         result = find_adventure("Build It Up, Knock It Down Adventure", "lion")
@@ -84,13 +89,13 @@ class TestFindAdventure:
         wolf_bobcat = find_adventure("Bobcat (Wolf) Adventure", "wolves")
         assert lion_bobcat is not None
         assert wolf_bobcat is not None
-        assert lion_bobcat.image_url != wolf_bobcat.image_url
+        assert lion_bobcat.image_path != wolf_bobcat.image_path
 
     def test_shooting_sport_matches(self) -> None:
         result = find_adventure("Archery (Lion) Adventure", "lions")
         assert result is not None
         assert result.name == "Archery"
-        assert "Archery" in result.image_url
+        assert "archery" in result.image_path
 
     def test_unknown_adventure_returns_none(self) -> None:
         result = find_adventure("Nonexistent Adventure", "lion")
@@ -137,14 +142,38 @@ class TestAdventureData:
             assert rank in ADVENTURES
             assert len(ADVENTURES[rank]) > 0
 
-    def test_all_adventures_have_image_urls(self) -> None:
+    def test_all_adventures_have_local_images(self) -> None:
         for rank, adventures in ADVENTURES.items():
             for adv in adventures:
-                assert adv.image_url.startswith("https://"), (
-                    f"{rank}/{adv.name} has invalid image URL"
+                assert Path(adv.image_path).exists(), (
+                    f"{rank}/{adv.name} image missing: {adv.image_path}"
                 )
 
     def test_all_ranks_have_required_adventures(self) -> None:
         for rank, adventures in ADVENTURES.items():
             required = [a for a in adventures if a.required]
             assert len(required) >= 5, f"{rank} has fewer than 5 required adventures"
+
+
+class TestVersionManagement:
+    def test_get_available_versions(self) -> None:
+        versions = get_available_versions()
+        assert "2023_2024" in versions
+
+    def test_get_active_version_defaults_to_latest(self) -> None:
+        version = get_active_version()
+        available = get_available_versions()
+        assert version == available[-1]
+
+    def test_set_active_version_rebuilds_adventures(self) -> None:
+        set_active_version("2023_2024")
+        result = find_adventure("Fun on the Run Adventure", "lions")
+        assert result is not None
+        assert "2023_2024" in result.image_path
+
+    def test_image_paths_include_version(self) -> None:
+        for rank, adventures in ADVENTURES.items():
+            for adv in adventures:
+                assert get_active_version() in adv.image_path, (
+                    f"{rank}/{adv.name} path missing version: {adv.image_path}"
+                )
