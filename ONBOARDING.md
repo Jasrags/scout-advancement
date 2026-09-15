@@ -132,11 +132,11 @@ The inventory screen lets you track leftover awards between ceremonies. Inventor
 
 ### Turning Inventory Tracking On/Off
 
-Go to the **Inventory** menu and check **Track Award Inventory**. This shows or hides the Manage/Check/Deduct Inventory buttons and menu item. The setting is remembered between app launches. If you don't want to deal with inventory at all, just leave it off — steps 4 (partially), 6, 7, and 10 above become optional/skippable, and everything else (labels, bagging guide) works the same either way.
+Click **Settings...** and check **Track award inventory**. This shows or hides the Manage/Check/Deduct Inventory buttons, the "Manage Inventory..." menu item, and the adventure year selector. The setting is remembered between app launches. If you don't want to deal with inventory at all, just leave it off — steps 4 (partially), 6, 7, and 10 above become optional/skippable, and everything else (labels, bagging guide) works the same either way.
 
 ### Setting Up Inventory
 
-1. Turn on **Track Award Inventory** in the Inventory menu (see above)
+1. Turn on **Track award inventory** in Settings (see above)
 2. Click **Manage Inventory** (always available once enabled, no CSV needed)
 3. Each tab shows a rank (Lion through Arrow of Light)
 4. Adventures are grouped: Required, Elective, Shooting Sports

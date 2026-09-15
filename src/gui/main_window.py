@@ -73,12 +73,6 @@ class MainWindow(QMainWindow):
 
         # Inventory menu
         inv_menu = menu_bar.addMenu("Inventory")
-        self._track_inventory_action = QAction("Track Award Inventory", self)
-        self._track_inventory_action.setCheckable(True)
-        self._track_inventory_action.setChecked(self._inventory_enabled)
-        self._track_inventory_action.toggled.connect(self._on_toggle_inventory)
-        inv_menu.addAction(self._track_inventory_action)
-        inv_menu.addSeparator()
         self._manage_inventory_action = QAction("Manage Inventory...", self)
         self._manage_inventory_action.triggered.connect(self._on_manage_inventory)
         inv_menu.addAction(self._manage_inventory_action)
@@ -129,8 +123,10 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(label_layout)
 
-        # Adventure version selector
-        version_layout = QHBoxLayout()
+        # Adventure version selector (only meaningful when inventory tracking is on)
+        self._version_row = QWidget()
+        version_layout = QHBoxLayout(self._version_row)
+        version_layout.setContentsMargins(0, 0, 0, 0)
         version_layout.addWidget(QLabel("Adventure year:"))
         self._version_combo = QComboBox()
         for ver in get_available_versions():
@@ -145,7 +141,7 @@ class MainWindow(QMainWindow):
         self._version_combo.currentIndexChanged.connect(self._on_version_changed)
         version_layout.addWidget(self._version_combo, stretch=1)
         version_layout.addStretch()
-        layout.addLayout(version_layout)
+        layout.addWidget(self._version_row)
 
         # Action buttons
         btn_layout = QHBoxLayout()
@@ -213,16 +209,12 @@ class MainWindow(QMainWindow):
         self._check_inv_btn.setEnabled(has_files and self._inventory_enabled)
         self._deduct_btn.setEnabled(has_files and self._inventory_enabled)
 
-    def _on_toggle_inventory(self, checked: bool) -> None:
-        self._inventory_enabled = checked
-        self._settings.setValue("inventory_enabled", checked)
-        self._apply_inventory_visibility()
-        # Re-evaluate button enabled state against currently loaded files
-        self._on_files_changed(len(self._file_list.get_valid_file_paths()))
-
     def _apply_inventory_visibility(self) -> None:
         self._inventory_row.setVisible(self._inventory_enabled)
+        self._version_row.setVisible(self._inventory_enabled)
         self._manage_inventory_action.setEnabled(self._inventory_enabled)
+        # Re-evaluate button enabled state against currently loaded files
+        self._on_files_changed(len(self._file_list.get_valid_file_paths()))
 
     def _on_label_type_changed(self, _index: int) -> None:
         name = self._label_combo.currentData()
@@ -237,7 +229,11 @@ class MainWindow(QMainWindow):
 
     def _on_settings(self) -> None:
         dialog = LabelSettingsDialog(self._settings, parent=self)
-        dialog.exec()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._inventory_enabled = bool(
+                self._settings.value("inventory_enabled", False, type=bool)
+            )
+            self._apply_inventory_visibility()
 
     def _selected_label_spec(self) -> LabelSpec:
         name = self._label_combo.currentData()
