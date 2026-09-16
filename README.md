@@ -8,7 +8,7 @@ A desktop app that turns Scoutbook advancement CSVs into printable Avery labels 
 
 Download the latest release from [GitHub Releases](../../releases):
 
-- **macOS** — download `-macos-arm64.zip` (Apple Silicon: M1/M2/M3/M4) or `-macos-intel.zip` (Intel), unzip, and drag to Applications. Check your Mac's chip under the Apple menu → About This Mac.
+- **macOS** — download the `-macos.zip`, unzip, and drag to Applications
 - **Windows** — download the `-windows.zip`, unzip, and run `Scout Advancement Labels.exe`
 
 Open the app, drop your CSV files, and click **Generate Labels PDF** or **Generate Bagging Guide**.

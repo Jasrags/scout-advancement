@@ -16,7 +16,7 @@ The Scout Advancement Labels app takes the purchase order CSV exported from Scou
 - Access to [Scoutbook Advancements](https://advancements.scouting.org/roster#advancements)
 - Avery 6427 shipping labels (2" x 4", 10 per sheet) or compatible label sheets
 - Snack-size zip bags (100 count) for bagging awards
-- The Scout Advancement Labels app ([download latest release](https://github.com/Jasrags/scout-advancement/releases)) — on macOS, pick `-macos-arm64.zip` for Apple Silicon Macs (M1 or newer) or `-macos-intel.zip` for Intel Macs (check under the Apple menu → About This Mac)
+- The Scout Advancement Labels app ([download latest release](https://github.com/Jasrags/scout-advancement/releases))
 
 ## Monthly Ceremony Workflow
 
