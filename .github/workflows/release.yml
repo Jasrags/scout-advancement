@@ -57,12 +57,19 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact-name: macos-app
+            artifact-name: macos-arm64-app
             build-cmd: bash scripts/build.sh
             package-cmd: |
               cd dist
-              zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos.zip" "Scout Advancement Labels.app"
-            artifact-pattern: dist/Scout-Advancement-Labels-*-macos.zip
+              zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos-arm64.zip" "Scout Advancement Labels.app"
+            artifact-pattern: dist/Scout-Advancement-Labels-*-macos-arm64.zip
+          - os: macos-15-intel
+            artifact-name: macos-intel-app
+            build-cmd: bash scripts/build.sh
+            package-cmd: |
+              cd dist
+              zip -r "Scout-Advancement-Labels-${{ needs.release.outputs.version }}-macos-intel.zip" "Scout Advancement Labels.app"
+            artifact-pattern: dist/Scout-Advancement-Labels-*-macos-intel.zip
           - os: windows-latest
             artifact-name: windows-exe
             build-cmd: pwsh scripts/build.ps1
@@ -106,10 +113,16 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.tag }}
 
-      - name: Download macOS artifact
+      - name: Download macOS arm64 artifact
         uses: actions/download-artifact@v8
         with:
-          name: macos-app
+          name: macos-arm64-app
+          path: dist/
+
+      - name: Download macOS Intel artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-intel-app
           path: dist/
 
       - name: Download Windows artifact
