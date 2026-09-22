@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-09-22)
+
+### Bug Fixes
+
+- Bagging guide silent save failure in packaged app
+  ([`5ee0ac9`](https://github.com/Jasrags/scout-advancement/commit/5ee0ac9d166430be5bde9befea599b8a5518e156))
+
+- Build separate Intel and Apple Silicon macOS release artifacts
+  ([#39](https://github.com/Jasrags/scout-advancement/pull/39),
+  [`276cb56`](https://github.com/Jasrags/scout-advancement/commit/276cb565e23e01e328ab0d4683721ad44c39c5ea))
+
+- Build separate Intel and Apple Silicon macOS release artifacts
+  ([`a0d27dd`](https://github.com/Jasrags/scout-advancement/commit/a0d27dde615238173ab0e9a10553a7d8ccf91705))
+
+- Move inventory tracking toggle into Settings, hide adventure year selector when off
+  ([`4fb1570`](https://github.com/Jasrags/scout-advancement/commit/4fb1570d836853721c485af3347af237329108ca))
+
+### Documentation
+
+- Add onboarding guide, update roadmap and README
+  ([`eff2e25`](https://github.com/Jasrags/scout-advancement/commit/eff2e25242835ac9feab45f7b445b5c408dfff37))
+
+### Features
+
+- Add award inventory management with per-rank visual UI
+  ([`b72ab21`](https://github.com/Jasrags/scout-advancement/commit/b72ab217d266a3c82ab6e75d67556630aa6e1eba))
+
+- Add setting to enable/disable award inventory tracking
+  ([`85ae929`](https://github.com/Jasrags/scout-advancement/commit/85ae929d293bdc143e8803fca1b0607105b44f48))
+
+### Testing
+
+- Fix stale bagging guide tests after intentional behavior change
+  ([`426c0e0`](https://github.com/Jasrags/scout-advancement/commit/426c0e0b2564278976a160648be37d2435cc4037))
+
+
 ## v1.2.1 (2026-03-31)
 
 ### Bug Fixes
