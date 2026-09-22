@@ -16,7 +16,34 @@ The Scout Advancement Labels app takes the purchase order CSV exported from Scou
 - Access to [Scoutbook Advancements](https://advancements.scouting.org/roster#advancements)
 - Avery 6427 shipping labels (2" x 4", 10 per sheet) or compatible label sheets
 - Snack-size zip bags (100 count) for bagging awards
-- The Scout Advancement Labels app ([download latest release](https://github.com/Jasrags/scout-advancement/releases)) — on macOS, pick `-macos-arm64.zip` for Apple Silicon Macs (M1 or newer) or `-macos-intel.zip` for Intel Macs (check under the Apple menu → About This Mac)
+- The Scout Advancement Labels app — see [Downloading the Right Version](#downloading-the-right-version) below
+
+## Downloading the Right Version
+
+Go to [GitHub Releases](https://github.com/Jasrags/scout-advancement/releases) and grab the latest one. There are three download options — pick the one that matches your computer:
+
+| File | Who it's for | How to check |
+|------|---------------|--------------|
+| `Scout-Advancement-Labels-*-macos-arm64.zip` | Newer Macs (Apple Silicon: M1, M2, M3, M4) | Apple menu (top-left corner) → **About This Mac** → look at the **Chip** line — if it says "Apple M1/M2/M3/M4", use this one |
+| `Scout-Advancement-Labels-*-macos-intel.zip` | Older Macs (Intel processor) | Apple menu (top-left corner) → **About This Mac** → if the **Chip**/**Processor** line says "Intel", use this one |
+| `Scout-Advancement-Labels-*-windows.zip` | Windows 10/11 PCs | Any Windows computer works with this one |
+
+Not sure which Mac you have? When in doubt, check About This Mac first — picking the wrong macOS build won't corrupt anything, it'll just refuse to open (see [Troubleshooting](#troubleshooting)), so you can always try the other one.
+
+**macOS:** unzip the file, then drag `Scout Advancement Labels.app` into your Applications folder.
+**Windows:** unzip the file, then run `Scout Advancement Labels.exe` from the extracted folder (no installer needed).
+
+## Opening the App for the First Time (macOS)
+
+The app isn't signed with an Apple Developer certificate, so the first time you open it, macOS will refuse and show a message like **"Scout Advancement Labels" Not Opened** with only a **Move to Trash** button. This is expected — it happens for any app downloaded outside the App Store that isn't notarized by Apple. Do this once per Mac:
+
+1. Try to open the app (double-click it in Applications). You'll see the blocked message — click **Done** (not Move to Trash).
+2. Open **System Settings → Privacy & Security**.
+3. Scroll down to the **Security** section. Within about an hour of the blocked attempt, you'll see: **"Scout Advancement Labels" was blocked to protect your Mac.** with an **Open Anyway** button next to it. Click **Open Anyway**.
+4. A dialog appears asking **Open "Scout Advancement Labels"?** with three options: **Move to Trash**, **Open Anyway**, **Done**. Click **Open Anyway**.
+5. The app launches normally from now on — you won't see this again for this version.
+
+If the **Open Anyway** button in Security settings has disappeared (the window expired) or the app never launched at all, try again by double-clicking the app to re-trigger the blocked message, then go back to step 2.
 
 ## Monthly Ceremony Workflow
 
@@ -174,6 +201,8 @@ At the end of the school year (or before the next year starts):
 | Labels are too small / text is cut off | Try a larger label type (e.g., Avery 5164 at 3.33" x 4") |
 | Adventure images not showing | Make sure the app was installed correctly with the `packaging/images/` directory |
 | Inventory not saving | Check that the app has write access to your user data directory |
+| "Not Opened" / "Apple could not verify" on macOS | See [Opening the App for the First Time (macOS)](#opening-the-app-for-the-first-time-macos) above — only happens once per Mac |
+| App won't launch, "not supported on this Mac" | You downloaded the wrong macOS build — re-download using `-macos-arm64.zip` for Apple Silicon or `-macos-intel.zip` for Intel (see [What You Need](#what-you-need)) |
 
 ## Need Help?
 
