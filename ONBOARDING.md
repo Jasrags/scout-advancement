@@ -16,7 +16,22 @@ The Scout Advancement Labels app takes the purchase order CSV exported from Scou
 - Access to [Scoutbook Advancements](https://advancements.scouting.org/roster#advancements)
 - Avery 6427 shipping labels (2" x 4", 10 per sheet) or compatible label sheets
 - Snack-size zip bags (100 count) for bagging awards
-- The Scout Advancement Labels app ([download latest release](https://github.com/Jasrags/scout-advancement/releases)) — on macOS, pick `-macos-arm64.zip` for Apple Silicon Macs (M1 or newer) or `-macos-intel.zip` for Intel Macs (check under the Apple menu → About This Mac)
+- The Scout Advancement Labels app — see [Downloading the Right Version](#downloading-the-right-version) below
+
+## Downloading the Right Version
+
+Go to [GitHub Releases](https://github.com/Jasrags/scout-advancement/releases) and grab the latest one. There are three download options — pick the one that matches your computer:
+
+| File | Who it's for | How to check |
+|------|---------------|--------------|
+| `Scout-Advancement-Labels-*-macos-arm64.zip` | Newer Macs (Apple Silicon: M1, M2, M3, M4) | Apple menu (top-left corner) → **About This Mac** → look at the **Chip** line — if it says "Apple M1/M2/M3/M4", use this one |
+| `Scout-Advancement-Labels-*-macos-intel.zip` | Older Macs (Intel processor) | Apple menu (top-left corner) → **About This Mac** → if the **Chip**/**Processor** line says "Intel", use this one |
+| `Scout-Advancement-Labels-*-windows.zip` | Windows 10/11 PCs | Any Windows computer works with this one |
+
+Not sure which Mac you have? When in doubt, check About This Mac first — picking the wrong macOS build won't corrupt anything, it'll just refuse to open (see [Troubleshooting](#troubleshooting)), so you can always try the other one.
+
+**macOS:** unzip the file, then drag `Scout Advancement Labels.app` into your Applications folder.
+**Windows:** unzip the file, then run `Scout Advancement Labels.exe` from the extracted folder (no installer needed).
 
 ## Opening the App for the First Time (macOS)
 
